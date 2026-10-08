@@ -41,18 +41,18 @@ dependencies {
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 	testAnnotationProcessor 'org.projectlombok:lombok'
 
-	// 벡터 색인·AI 추천은 데이터 모델과 색인 설계를 확정한 뒤에 추가한다 (CLAUDE.md 참고)
-	// implementation 'org.springframework.ai:spring-ai-starter-model-openai'
-	// implementation 'org.springframework.ai:spring-ai-starter-vector-store-qdrant'
+	// 벡터 색인: 임베딩(OpenAI) + 벡터 DB(Qdrant). Spring AI 2.0.x 가 Spring Boot 4 용 (tcine 과 같은 버전)
+	implementation 'org.springframework.ai:spring-ai-starter-model-openai'
+	implementation 'org.springframework.ai:spring-ai-starter-vector-store-qdrant'
+	// AI 추천(Gemini)은 검색을 붙인 뒤에 추가한다
 	// implementation 'org.springframework.ai:spring-ai-starter-model-google-genai'
 }
 
-// Spring AI를 추가할 때 주석을 풀 것 (tcine은 2.0.1 사용, Spring Boot 4 용)
-// dependencyManagement {
-// 	imports {
-// 		mavenBom 'org.springframework.ai:spring-ai-bom:2.0.1'
-// 	}
-// }
+dependencyManagement {
+	imports {
+		mavenBom 'org.springframework.ai:spring-ai-bom:2.0.1'
+	}
+}
 
 tasks.named('test') {
 	useJUnitPlatform()

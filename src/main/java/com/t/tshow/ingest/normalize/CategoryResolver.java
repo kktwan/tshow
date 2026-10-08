@@ -62,6 +62,12 @@ public class CategoryResolver {
         }
     }
 
+    /** 표준 분류의 사람이 읽는 이름 (예: theater → 연극). 모르면 id 를 그대로 */
+    public String name(String categoryId) {
+        Category c = categories.get(categoryId);
+        return c == null ? categoryId : c.name();
+    }
+
     /** 변환하지 못하면 소스의 기본 분류를 돌려주고 report 에 남긴다 */
     public Category resolve(SourceType source, String sourceCategory, NormalizationReport report) {
         String id = sourceCategory == null ? null : mappings.getOrDefault(source, Map.of()).get(sourceCategory.trim());

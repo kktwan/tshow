@@ -6,9 +6,10 @@ import java.time.OffsetDateTime;
 
 /**
  * 소스별로 정규화한 한 건 (source_record 테이블의 한 행). 분류·지역·날짜·가격이 표준 값으로 바뀌어 있다.
- * 중복 제거(병합)는 이 레코드들을 읽어 별도 단계에서 한다.
+ * 중복 제거(병합)는 이 레코드들을 읽어 별도 단계에서 한다. id 는 저장된 뒤에만 있다(방금 정규화한 레코드는 null).
  */
 public record SourceRecord(
+        Long id,
         String source,
         String sourceId,
         String kind,

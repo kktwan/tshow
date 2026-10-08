@@ -6,6 +6,7 @@ import com.t.tshow.ingest.SourceRecord;
 import com.t.tshow.ingest.source.RawEvent;
 import com.t.tshow.ingest.source.TicketLink;
 import org.springframework.stereotype.Component;
+import org.springframework.web.util.HtmlUtils;
 
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -31,12 +32,13 @@ public class SourceRecordNormalizer {
         this.upgradeImageHttps = properties.upgradeImageHttps();
     }
 
-    public SourceRecord normalize(RawEvent raw, Instant fetchedAt, NormalizationReport report) {
+    public SourceRecord normalize(RawEvent source, Instant fetchedAt, NormalizationReport report) {
+        RawEvent raw = unescaped(source);
         CategoryResolver.Category category = categories.resolve(raw.source(), raw.sourceCategory(), report);
         RegionResolver.Region region = regions.resolve(raw.sidoText(), raw.sigunguText(), raw.address(),
                 raw.sidoCode(), raw.sigunguCode(), report);
         return new SourceRecord(
-                raw.source().name(), raw.sourceId(), category.kind(), category.id(), raw.sourceCategory(),
+                null, raw.source().name(), raw.sourceId(), category.kind(), category.id(), raw.sourceCategory(),
                 raw.title(), texts.title(raw.title()), blankToNull(raw.description()),
                 raw.startDate(), raw.endDate(),
                 blankToNull(raw.venueName()), texts.venue(raw.venueName()), blankToNull(raw.address()),
@@ -47,6 +49,30 @@ public class SourceRecordNormalizer {
                 image(raw.imageUrl()), blankToNull(raw.imageLicense()), blankToNull(raw.infoUrl()),
                 ticketLinksJson(raw.ticketLinks()),
                 raw.sourceUpdatedAt(), fetchedAt, raw.raw());
+    }
+
+    /**
+     * 소스가 글자를 HTML 엔티티로 준 경우(&amp; &lt; &#39; 등, 두 번 감싸져 오기도 한다)를 원래 글자로 바꾼다.
+     * 제목·장소·본문 같은 사람이 읽는 글에만 적용하고 주소(URL)나 원본 응답은 건드리지 않는다.
+     */
+    private static RawEvent unescaped(RawEvent r) {
+        return new RawEvent(r.source(), r.sourceId(), unescape(r.title()), unescape(r.description()), r.sourceCategory(),
+                r.startDate(), r.endDate(), unescape(r.venueName()), unescape(r.address()), unescape(r.sidoText()), unescape(r.sigunguText()),
+                r.sidoCode(), r.sigunguCode(), r.lat(), r.lon(), unescape(r.priceText()), unescape(r.ageText()),
+                unescape(r.runtimeText()), unescape(r.scheduleText()), unescape(r.castText()), unescape(r.hostText()),
+                r.imageUrl(), r.imageLicense(), r.infoUrl(), r.ticketLinks(), r.sourceUpdatedAt(), r.raw());
+    }
+
+    /** 더 바뀌지 않을 때까지 (최대 3번) 해제한다 */
+    static String unescape(String text) {
+        if (text == null) return null;
+        String current = text;
+        for (int i = 0; i < 3; i++) {
+            String next = HtmlUtils.htmlUnescape(current);
+            if (next.equals(current)) break;
+            current = next;
+        }
+        return current;
     }
 
     private String image(String url) {

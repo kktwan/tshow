@@ -12,8 +12,8 @@
 - 로컬 인프라 `docker-compose.yml`: `tshow-db`(Postgres 17, **5434**), `tshow-qdrant`(**6335/6336**). tcine(5433/6333/6334)과 포트가 겹치지 않는다.
 - 설정 `application.yml`: DB·인증키(`KOPIS_API_KEY`, `TOURAPI_API_KEY`, `CULTURE_API_KEY`)는 `.env`에서 읽는다. 스키마 자동 변경은 끔(`ddl-auto: none`) — 데이터 모델 확정 후 마이그레이션 도구로 관리한다.
 - Spring AI(OpenAI 임베딩·Qdrant·Gemini) 의존성은 `build.gradle`에 주석으로 준비해 두었다. 색인 설계가 확정되면 푼다.
-- 빌드·테스트: `./gradlew.bat test --no-daemon` (22건 통과: 정규화, KOPIS·문화정보원·TourAPI 어댑터).
-- **수집기 구현됨**: 소스 어댑터 3종 → 정규화(분류·지역·가격·제목·날짜) → `source_record` 저장, 실행 기록·"매핑 안 된 값" 리포트는 `ingest_run`. 변환표는 `src/main/resources/taxonomy/`(`categories.yml`, `region-aliases.yml`, `price.yml`, 생성된 `regions.csv`). 아직 없는 것: **중복 병합(`event` 생성), 벡터 색인, 검색, 화면**.
+- 빌드·테스트: `./gradlew.bat test --no-daemon` (53건 통과: 정규화, 세 소스 어댑터, 중복 병합, 벡터 색인). Qdrant 통합 테스트는 `RUN_QDRANT_IT=true`일 때만 돈다.
+- **수집기 구현됨**: 소스 어댑터 3종 → 정규화(분류·지역·가격·제목·날짜) → `source_record` 저장, 실행 기록·"매핑 안 된 값" 리포트는 `ingest_run`. 변환표는 `src/main/resources/taxonomy/`(`categories.yml`, `region-aliases.yml`, `price.yml`, 생성된 `regions.csv`). **중복 병합도 구현됨**(`event`/`event_source` 테이블, 수집이 끝나면 자동 실행, 규칙은 `docs/index-design.md` 4절). **벡터 색인(Qdrant)도 구현됨**(`index` 패키지, 병합 뒤 자동 실행, 임베딩 키가 없으면 건너뜀). 아직 없는 것: **검색 서비스·API, 화면, AI 추천, 박스오피스 수집**. 로컬 Qdrant는 `docker compose up -d qdrant`(gRPC 6336).
 - **배포 파일 있음** (tcine과 같은 Oracle A1 + Jenkins Blue-Green 구조): `Jenkinsfile`, `Dockerfile`, `deploy/`. 서버에서 처음 한 번 할 일과 첫 수집 방법은 `deploy/README.md`. Docker 이미지 빌드와 컨테이너 헬스체크는 로컬에서 확인했고, 실제 서버 배포는 아직 하지 않았다.
 - **로컬에는 개발용으로 일부만 수집**해 두었다(KOPIS 약 900건, 문화정보원 957건, TourAPI 264건). **전체(6개월) 수집은 운영 서버에서 처음 한 번** 돌린다 (KOPIS는 몇 시간).
 - 로컬 수집 실행: 환경변수 `TSHOW_INGEST_ON_STARTUP=true`, `TSHOW_INGEST_SOURCES=KOPIS,CULTURE,TOURAPI`, `TSHOW_INGEST_HORIZON_MONTHS=...`를 주고 앱을 실행한다 (`application.yml`의 `tshow.ingest.*`). 결과는 `ingest_run` 테이블에서 본다.

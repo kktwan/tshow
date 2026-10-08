@@ -121,6 +121,16 @@ class NormalizationTest {
     }
 
     @Test
+    void 제목에_남은_HTML_엔티티를_풀어서_같은_제목으로_본다() {
+        assertEquals("유지영 & 정현진 조인트 피아노 리사이틀", SourceRecordNormalizer.unescape("유지영 &amp; 정현진 조인트 피아노 리사이틀"));
+        assertEquals("<다담> 'Song'", SourceRecordNormalizer.unescape("&lt;다담&gt; &#39;Song&#39;"));
+        assertEquals("A & B", SourceRecordNormalizer.unescape("A &amp;amp; B"), "두 번 감싸진 것도 푼다");
+        assertNull(SourceRecordNormalizer.unescape(null));
+        assertEquals(texts.title("유지영 & 정현진 조인트 피아노 리사이틀 [대구]"),
+                texts.title(SourceRecordNormalizer.unescape("[대구] 유지영 &amp; 정현진 조인트 피아노 리사이틀")));
+    }
+
+    @Test
     void 소스마다_다른_날짜_형식을_읽는다() {
         assertEquals(LocalDate.of(2026, 10, 21), dates.parse("2026.10.21"));
         assertEquals(LocalDate.of(2026, 10, 16), dates.parse("20261016"));

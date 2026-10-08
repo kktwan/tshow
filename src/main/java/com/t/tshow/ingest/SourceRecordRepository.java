@@ -6,7 +6,10 @@ import org.springframework.stereotype.Repository;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /** source_record 저장소. (source, source_id) 로 upsert 한다. */
@@ -30,6 +33,27 @@ public class SourceRecordRepository {
                     return null;
                 }).list();
         return result;
+    }
+
+    /** 병합 입력: 저장된 소스 레코드 전체 (id 포함) */
+    public List<SourceRecord> findAll() {
+        return jdbc.sql("SELECT * FROM source_record ORDER BY id").query((rs, n) -> {
+            Timestamp fetched = rs.getTimestamp("fetched_at");
+            return new SourceRecord(
+                    rs.getLong("id"), rs.getString("source"), rs.getString("source_id"), rs.getString("kind"),
+                    rs.getString("category"), rs.getString("source_category"), rs.getString("title"),
+                    rs.getString("title_norm"), rs.getString("description"),
+                    rs.getObject("start_date", LocalDate.class), rs.getObject("end_date", LocalDate.class),
+                    rs.getString("venue_name"), rs.getString("venue_name_norm"), rs.getString("address"),
+                    rs.getString("sido_code"), rs.getString("sigungu_code"),
+                    (Double) rs.getObject("lat"), (Double) rs.getObject("lon"),
+                    rs.getString("price_type"), rs.getString("price_text"), rs.getString("age_text"),
+                    rs.getString("runtime_text"), rs.getString("schedule_text"), rs.getString("cast_text"),
+                    rs.getString("host_text"), rs.getString("image_url"), rs.getString("image_license"),
+                    rs.getString("info_url"), rs.getString("ticket_links"),
+                    rs.getObject("source_updated_at", OffsetDateTime.class),
+                    fetched == null ? null : fetched.toInstant(), rs.getString("raw"));
+        }).list();
     }
 
     /** 새로 들어왔으면 true, 이미 있어서 갱신했으면 false */

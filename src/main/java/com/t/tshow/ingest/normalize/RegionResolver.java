@@ -39,6 +39,8 @@ public class RegionResolver {
     private static final List<String> NOT_SIGUNGU_SUFFIXES = List.of("읍", "면", "동", "리", "로", "길");
 
     private final Map<String, String> sidoNameByCode = new HashMap<>();
+    /** 시도 코드 → (시군구 코드 → 시군구 이름) */
+    private final Map<String, Map<String, String>> sigunguNameByCode = new HashMap<>();
     /** 시도 코드 → (시군구 이름 → 시군구 코드) */
     private final Map<String, Map<String, String>> sigunguByNameBySido = new HashMap<>();
     private final Map<String, String> sidoByAlias = new HashMap<>();
@@ -59,6 +61,7 @@ public class RegionResolver {
                 String[] c = line.split(",", -1);
                 sidoNameByCode.put(c[0], c[1]);
                 sigunguByNameBySido.computeIfAbsent(c[0], k -> new HashMap<>()).put(c[3], c[2]);
+                sigunguNameByCode.computeIfAbsent(c[0], k -> new HashMap<>()).put(c[2], c[3]);
             }
         } catch (IOException e) {
             throw new IllegalStateException(CSV + " 를 읽지 못했어요", e);
@@ -129,6 +132,14 @@ public class RegionResolver {
             }
         }
         return new Region(sido, sigungu);
+    }
+
+    /** 사람이 읽는 지역 이름 (예: "서울특별시 종로구"). 코드를 모르면 빈 문자열 */
+    public String displayName(String sidoCode, String sigunguCode) {
+        if (sidoCode == null) return "";
+        String sido = sidoNameByCode.getOrDefault(sidoCode, "");
+        String sigungu = sigunguCode == null ? "" : sigunguNameByCode.getOrDefault(sidoCode, Map.of()).getOrDefault(sigunguCode, "");
+        return (sido + " " + sigungu).trim();
     }
 
     private String findSido(String text) {

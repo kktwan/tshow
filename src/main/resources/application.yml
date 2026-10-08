@@ -16,6 +16,33 @@ spring:
     enabled: true
   jackson:
     time-zone: Asia/Seoul
+  ai:
+    # 쓰는 것은 임베딩(OpenAI)뿐이다. 나머지 OpenAI 기능은 꺼서 키가 없어도 앱이 뜨게 한다
+    model:
+      chat: none
+      embedding: openai
+      image: none
+      moderation: none
+      audio:
+        speech: none
+        transcription: none
+    openai:
+      # 키가 비어 있으면 Spring AI 가 시작 단계에서 실패할 수 있어 자리표시 값을 둔다. 실제 사용 가능 여부는 tshow.index 에서 판단한다
+      api-key: ${OPENAI_API_KEY:not-configured}
+      embedding:
+        model: ${OPENAI_EMBEDDING_MODEL:text-embedding-3-small}
+        # 벡터 크기를 줄여 저장 공간과 메모리를 아낀다. tshow.index.vector-dimensions 와 같아야 한다
+        dimensions: 768
+    vectorstore:
+      qdrant:
+        host: ${QDRANT_HOST:localhost}
+        # 로컬 기본값은 tshow 의 docker-compose(6336). 운영은 deploy compose 가 6334 를 준다
+        port: ${QDRANT_GRPC_PORT:6336}
+        api-key: ${QDRANT_API_KEY:}
+        use-tls: ${QDRANT_USE_TLS:false}
+        # 이 설정은 Spring AI 벡터스토어용이다. tshow 는 tshow.index.collection-name 을 직접 쓴다
+        collection-name: ${TSHOW_QDRANT_COLLECTION:tshow-events}
+        initialize-schema: false
 
 management:
   endpoints:
@@ -84,6 +111,36 @@ tshow:
       max-retries: 4
       backoff-millis: 5000
       timeout-seconds: 30
+  # 소스 간 중복 판정과 필드 병합. 기준값과 소스 우선순위는 여기서 조정한다 (MergeProperties 설명 참고)
+  merge:
+    title-similarity: 0.85
+    venue-similarity: 0.6
+    max-distance-meters: 300
+    date-tolerance-days: 0
+    # 장소가 같을 때 한쪽 제목이 다른 쪽에 통째로 포함되면(부제 차이) 같은 제목으로 본다. 이 글자 수 이상일 때만
+    contained-title-min-length: 8
+    # 장소 이름·좌표가 안 맞아도 같은 시군구에서 제목이 이만큼 같으면 같은 행사로 본다 (같은 건물의 다른 이름)
+    same-region-title-similarity: 0.95
+    no-place-title-similarity: 1.0
+    # 필드별 소스 우선순위: 앞의 소스 값을 우선 쓴다. 실측: TourAPI 소개글이 가장 풍부, KOPIS 가 가격·좌표·예매 링크가 정확
+    priority:
+      default: [KOPIS, CULTURE, TOURAPI]
+      description: [TOURAPI, KOPIS, CULTURE]
+      image: [KOPIS, TOURAPI, CULTURE]
+      info-url: [CULTURE, TOURAPI, KOPIS]
+      category: [KOPIS, TOURAPI, CULTURE]
+  # 벡터 색인 (docs/index-design.md 2절). 컬렉션은 공용 Qdrant 안에서 tshow 전용 이름을 쓴다
+  index:
+    collection-name: ${TSHOW_QDRANT_COLLECTION:tshow-events}
+    vector-dimensions: 768
+    # 임베딩 호출 한 번에 보낼 문장 수
+    batch-size: 64
+    # 임베딩 텍스트에 넣을 설명의 최대 글자 수 (길면 앞부분만)
+    description-max-chars: 600
+    # 임베딩 텍스트 모양. {필드} 자리를 채우고, 값이 없는 줄은 뺀다
+    embedding-template: index/embedding.tpl
+    # false 로 두면 수집 뒤 색인 단계를 건너뛴다
+    enabled: true
   # 종료 후 보관 기간(일). 지나면 Postgres 는 논리삭제, Qdrant 는 물리삭제 (docs/index-design.md)
   retention:
     days: 30

@@ -1,6 +1,8 @@
 package com.t.tshow.ingest;
 
+import com.t.tshow.event.MergeService;
 import com.t.tshow.global.config.IngestProperties;
+import com.t.tshow.index.IndexService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
@@ -17,11 +19,15 @@ public class IngestScheduler implements ApplicationRunner {
     private static final Logger log = LoggerFactory.getLogger(IngestScheduler.class);
 
     private final IngestService ingest;
+    private final MergeService merge;
+    private final IndexService index;
     private final IngestProperties properties;
     private final AtomicBoolean running = new AtomicBoolean(false);
 
-    public IngestScheduler(IngestService ingest, IngestProperties properties) {
+    public IngestScheduler(IngestService ingest, MergeService merge, IndexService index, IngestProperties properties) {
         this.ingest = ingest;
+        this.merge = merge;
+        this.index = index;
         this.properties = properties;
     }
 
@@ -46,6 +52,10 @@ public class IngestScheduler implements ApplicationRunner {
         }
         try {
             ingest.runAll();
+            // 수집이 끝나면 소스 간 중복을 합쳐 event 에 반영한다
+            merge.run();
+            // 합친 행사 중 바뀐 것만 벡터 색인에 반영한다 (임베딩 키가 없으면 건너뜀)
+            index.sync();
         } finally {
             running.set(false);
         }
