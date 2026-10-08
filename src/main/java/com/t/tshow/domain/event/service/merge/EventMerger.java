@@ -60,10 +60,10 @@ public class EventMerger {
 
         Event unhashed = Event.builder()
                 .kind(anyCategory.getKind()).category(anyCategory.getCategory())
-                .title(anyTitle.getTitle()).titleNorm(anyTitle.getTitleNorm()).description(description)
+                .title(Html.unescape(anyTitle.getTitle())).titleNorm(anyTitle.getTitleNorm()).description(description)
                 .startDate(dates == null ? null : dates.getStartDate()).endDate(dates == null ? null : dates.getEndDate())
-                .venueName(venue == null ? null : venue.getVenueName()).venueNameNorm(venue == null ? null : venue.getVenueNameNorm())
-                .address(address == null ? null : address.getAddress())
+                .venueName(venue == null ? null : Html.unescape(venue.getVenueName())).venueNameNorm(venue == null ? null : venue.getVenueNameNorm())
+                .address(address == null ? null : Html.unescape(address.getAddress()))
                 .sidoCode(region == null ? null : region.getSidoCode()).sigunguCode(sigungu)
                 .lat(location == null ? null : location.getLat()).lon(location == null ? null : location.getLon())
                 .priceType(price == null ? "UNKNOWN" : price.getPriceType()).priceText(price == null ? null : text(price.getPriceText()))

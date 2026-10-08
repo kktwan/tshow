@@ -296,4 +296,15 @@ class MergeTest {
                 .events().get(0).event().getDataHash();
         assertNotEquals(before, after);
     }
+
+    @Test
+    void 제목과_장소의_엔티티도_병합_결과에서는_글자로_돌아온다() {
+        // 운영에서 실제로 남아 있던 모양: 엔티티로 저장된 제목
+        SourceRecord stored = rec("KOPIS", "k1", "연극 &lt;강아지똥&gt;", D1, D1, "롯데 &amp; 시어터", 37.37, 126.72);
+
+        Event e = planner.plan(List.of(stored), Map.of(), UUID::randomUUID).events().get(0).event();
+
+        assertEquals("연극 <강아지똥>", e.getTitle());
+        assertEquals("롯데 & 시어터", e.getVenueName());
+    }
 }

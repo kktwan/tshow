@@ -124,3 +124,13 @@
 ## AI 추천 키 (Gemini)
 
 서버 `/data/tshow/.env` 에 `GEMINI_API_KEY` 를 넣고 컨테이너를 다시 만들어야(`docker compose up -d --force-recreate`) 적용된다 (`docker restart` 는 env 를 다시 읽지 않는다). 키가 없으면 앱은 정상 동작하고 AI 추천 버튼만 보이지 않는다. 모델은 `GEMINI_MODEL`(기본 `gemini-3.1-flash-lite-preview`), 생각 시간은 `GEMINI_THINKING_LEVEL`(기본 `MINIMAL`) — `thinking-level: MINIMAL` 과 `thinking-budget: 0` 을 함께 쓰면 400 오류가 난다.
+
+## DB 마이그레이션 배포 규칙
+
+2026-10-08 배포에서 마이그레이션 V5(`ALTER TABLE`)가 DBeaver 의 닫히지 않은 트랜잭션 락에 막혀 멈췄고, 대기 중인 `ALTER` 가 뒤따르는 조회까지 막아 **첫 화면과 검색이 약 10분간 응답하지 않았다**. 그래서:
+
+- **배포 전에 DB 도구(DBeaver 등)의 열린 트랜잭션을 닫는다** (Commit/Rollback, 또는 Auto-commit 으로 연결). 확인 쿼리:
+  `select pid, application_name, state, now() - xact_start as age from pg_stat_activity where datname = 'tshow' and state = 'idle in transaction';` — 결과가 비어 있어야 한다.
+- **새 마이그레이션은 파일 맨 위에 `SET LOCAL lock_timeout = '15s';` 를 넣는다.** 락을 못 잡으면 15초 만에 실패해서, 사이트를 오래 막지 않고 배포만 실패한다 (Flyway 는 마이그레이션 하나를 한 트랜잭션으로 실행하므로 `SET LOCAL` 이 적용된다).
+- 배포가 헬스체크에서 실패하면 새 슬롯 컨테이너가 재시도로 락을 다시 잡지 않도록 먼저 멈추고(`docker stop tshow-blue` 또는 `tshow-green`) 원인을 본 뒤 다시 배포한다. 멈춘 마이그레이션은 `pg_stat_activity` 에서 `wait_event_type = 'Lock'` 인 `ALTER` 로 찾을 수 있다.
+- (선택) `ALTER ROLE tshow SET idle_in_transaction_session_timeout = '10min';` 을 걸면 잊힌 세션이 자동으로 끊긴다.
