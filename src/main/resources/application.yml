@@ -14,6 +14,18 @@ spring:
   flyway:
     # 스키마는 db/migration 의 SQL 로만 바꾼다
     enabled: true
+  jpa:
+    hibernate:
+      # Hibernate 는 스키마를 만들거나 바꾸지 않고, 시작할 때 엔티티와 맞는지만 확인한다
+      ddl-auto: validate
+    # 뷰 렌더링까지 DB 연결을 붙잡지 않는다 (트랜잭션은 서비스 계층에서 끝난다)
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: 100
+        order_inserts: true
+        order_updates: true
   jackson:
     time-zone: Asia/Seoul
   ai:

@@ -10,9 +10,9 @@
 
 - Spring Boot 4.1.1 / Java 21 / Gradle 9.7.1 (tcine과 같은 계열). 패키지 `com.t.tshow`, 진입점 `TshowApplication`.
 - 로컬 인프라 `docker-compose.yml`: `tshow-db`(Postgres 17, **5434**), `tshow-qdrant`(**6335/6336**). tcine(5433/6333/6334)과 포트가 겹치지 않는다.
-- 설정 `application.yml`: DB·인증키(`KOPIS_API_KEY`, `TOURAPI_API_KEY`, `CULTURE_API_KEY`)는 `.env`에서 읽는다. 스키마 자동 변경은 끔(`ddl-auto: none`) — 데이터 모델 확정 후 마이그레이션 도구로 관리한다.
+- 설정 `application.yml`: DB·인증키(`KOPIS_API_KEY`, `TOURAPI_API_KEY`, `CULTURE_API_KEY`)는 `.env`에서 읽는다. 스키마는 Flyway로만 바꾸고 Hibernate는 `ddl-auto: validate`로 맞는지만 확인한다.
 - Spring AI(OpenAI 임베딩·Qdrant·Gemini) 의존성은 `build.gradle`에 주석으로 준비해 두었다. 색인 설계가 확정되면 푼다.
-- 빌드·테스트: `./gradlew.bat test --no-daemon` (53건 통과: 정규화, 세 소스 어댑터, 중복 병합, 벡터 색인). Qdrant 통합 테스트는 `RUN_QDRANT_IT=true`일 때만 돈다.
+- 빌드·테스트: `./gradlew.bat test --no-daemon` (62건 통과: 정규화, 세 소스 어댑터, 중복 병합, 벡터 색인, 공통 호출, API 응답). Qdrant 통합 테스트는 `RUN_QDRANT_IT=true`일 때만 돈다.
 - **수집기 구현됨**: 소스 어댑터 3종 → 정규화(분류·지역·가격·제목·날짜) → `source_record` 저장, 실행 기록·"매핑 안 된 값" 리포트는 `ingest_run`. 변환표는 `src/main/resources/taxonomy/`(`categories.yml`, `region-aliases.yml`, `price.yml`, 생성된 `regions.csv`). **중복 병합도 구현됨**(`event`/`event_source` 테이블, 수집이 끝나면 자동 실행, 규칙은 `docs/index-design.md` 4절). **벡터 색인(Qdrant)도 구현됨**(`index` 패키지, 병합 뒤 자동 실행, 임베딩 키가 없으면 건너뜀). 아직 없는 것: **검색 서비스·API, 화면, AI 추천, 박스오피스 수집**. 로컬 Qdrant는 `docker compose up -d qdrant`(gRPC 6336).
 - **배포 파일 있음** (tcine과 같은 Oracle A1 + Jenkins Blue-Green 구조): `Jenkinsfile`, `Dockerfile`, `deploy/`. 서버에서 처음 한 번 할 일과 첫 수집 방법은 `deploy/README.md`. Docker 이미지 빌드와 컨테이너 헬스체크는 로컬에서 확인했고, 실제 서버 배포는 아직 하지 않았다.
 - **로컬에는 개발용으로 일부만 수집**해 두었다(KOPIS 약 900건, 문화정보원 957건, TourAPI 264건). **전체(6개월) 수집은 운영 서버에서 처음 한 번** 돌린다 (KOPIS는 몇 시간).
@@ -64,20 +64,29 @@ tcine에서 겪은 문제(시리즈 장르 체계 불일치, 후처리 필터로
 1. **하드코딩을 왠만하면 하지 않는다.** 소스별 분류 → 표준 분류 변환표, 지역 이름 → 법정동 코드 표, 장르·분위기 사전, 불용어, 점수 가중치, 임계값은 코드가 아니라 **리소스 파일(yml/csv)이나 `@ConfigurationProperties`** 로 둔다. 새 소스·분류가 생기면 코드가 아니라 데이터를 고친다. (tcine에서 사전·점수를 설정으로 분리해 효과를 본 방식)
 2. **색인 설계를 가장 먼저, 가장 신경 써서 한다.** 어떤 값을 임베딩 텍스트에 넣고 어떤 값을 payload에 둘지, 정규화 규칙, 중복 판정, 갱신 방식을 정한 뒤에 수집·색인 코드를 쓴다. 설계는 `docs/`에 남긴다.
 3. **소스별 차이는 어댑터로 가두고, 나머지는 공통 파이프라인으로 처리한다.** 세 소스는 각자 클라이언트와 매퍼만 갖고 공통 모델(`RawEvent` → 정규화 → `Event`)로 변환한 뒤, 정규화·중복 제거·색인·검색은 소스를 모르는 공통 코드가 한다. (tcine에서 영화/시리즈를 `AbstractRecommendService` + 얇은 하위 클래스로 합친 방식)
-4. **패키지는 책임 단위로 나눈다.** 예정 구조:
+4. **패키지는 책임 단위로, 계층은 `controller / dto / entity / repository / service`로 나눈다** (tcine과 같은 방식, 2026-10-08 구조 정리). 현재 구조:
 ```
 com.t.tshow
-├─ ingest                수집 (스케줄러, 소스별 어댑터, 정규화, 중복 제거)
-│  ├─ source/{kopis,tourapi,culture}   API 클라이언트 + 응답 DTO + 공통 모델로 매핑
-│  ├─ normalize          날짜·지역·분류·가격·좌표 정규화 (표는 리소스 파일에서 읽음)
-│  └─ dedup              소스 간 중복 판정
-├─ event                 도메인 (Event 엔티티, 저장소, 서비스)
-├─ index                 벡터 색인 (임베딩 텍스트 조립, payload 구성, Qdrant 쓰기·갱신)
-├─ search                검색 (질의 해석, payload 필터 + 벡터 + 키워드 결합, 순위, 설정 기반 점수)
-├─ recommend             AI 추천 (큐레이터 프롬프트, 결과 조립)
-├─ web                   컨트롤러·화면
-└─ global                공통 설정, 속성 클래스, 예외 처리
+├─ global                공통
+│  ├─ config             @ConfigurationProperties(Ingest/Merge/Index/Normalize), QueryDSL, 스케줄링
+│  ├─ response           ApiResponse(공통 응답), PageResponse(공통 페이지)
+│  ├─ exception          ErrorCode, BusinessException, GlobalExceptionHandler
+│  └─ util               Texts, Dates, Hashes, Json, Xml (여러 곳에서 쓰는 도우미)
+├─ infra                 외부 연동 (도메인은 이 안을 모른다)
+│  ├─ http               ApiClient(공통 호출 창구), ApiRequest(주소·파라미터·키 인코딩), RestApiClient(간격·재시도), ApiPolicy
+│  ├─ source/{kopis,culture,tourapi}   AbstractEventSource(공통 뼈대) + 소스별 어댑터
+│  ├─ qdrant, embedding  VectorIndex / Embedder 구현
+├─ domain
+│  ├─ ingest             수집·정규화: entity(SourceRecord, IngestRun), dto(RawEvent…), repository, service(+normalize)
+│  ├─ event              병합 결과: entity(Event, EventSourceLink), dto, repository(JPA + QueryDSL), service(+merge), controller(/api/events)
+│  └─ index              벡터 색인: port(VectorIndex, Embedder, IndexStateStore), service, repository(JpaIndexStateStore)
+├─ batch                 수집 → 병합 → 색인 파이프라인(service)과 cron(scheduler)
+└─ (예정) search, recommend   검색·AI 추천은 domain 아래에 같은 계층 구조로 추가
 ```
+   - 저장소는 **JPA(Hibernate) + Spring Data**, 조건이 바뀌는 조회는 **QueryDSL**(`EventQueryRepository`). 스키마는 Flyway SQL로만 바꾸고 Hibernate는 `ddl-auto: validate`로 맞는지만 확인한다.
+   - REST 컨트롤러는 항상 `ApiResponse`로 응답하고, 오류는 `BusinessException(ErrorCode)`를 던져 `GlobalExceptionHandler`가 상태 코드와 함께 `ApiResponse.error`로 바꾼다.
+   - 외부 API 호출은 모두 `ApiClient`/`ApiRequest`를 거친다 (호출 간격·재시도·키 인코딩·로그 마스킹을 한 곳에서). 새 소스는 `AbstractEventSource`를 상속해 주소와 응답 읽기만 구현한다.
+   - 도메인이 외부 연동을 직접 알지 않게 `port` 인터페이스를 두고 `infra`가 구현한다 (테스트는 가짜 구현).
 5. 점수·임계값·가중치는 `@ConfigurationProperties`로 두고 기본값과 이유를 주석으로 남긴다. 어휘·분류표는 리소스 파일 하나에서 관리하고 테스트로 검증한다.
 6. 변경은 **평가 세트로 전후를 비교**하고, 이상한 결과는 사례별 땜질이 아니라 원인을 고친다.
 

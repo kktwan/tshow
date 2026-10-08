@@ -18,8 +18,12 @@ repositories {
 }
 
 dependencies {
-	// 수집·병합은 SQL을 직접 다룬다 (JdbcClient). 스키마는 Flyway 마이그레이션으로 관리한다
-	implementation 'org.springframework.boot:spring-boot-starter-jdbc'
+	// 저장소는 JPA(Hibernate)로, 동적 조건 조회는 QueryDSL 로 쓴다. 스키마는 Flyway 마이그레이션으로만 바꾼다
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	implementation 'io.github.openfeign.querydsl:querydsl-jpa:7.7'
+	annotationProcessor 'io.github.openfeign.querydsl:querydsl-apt:7.7:jpa'
+	annotationProcessor 'jakarta.persistence:jakarta.persistence-api'
+	annotationProcessor 'jakarta.annotation:jakarta.annotation-api'
 	implementation 'org.springframework.boot:spring-boot-starter-flyway'
 	implementation 'org.flywaydb:flyway-database-postgresql'
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
@@ -33,7 +37,7 @@ dependencies {
 	// 로컬 개발용 자동 재시작 (developmentOnly는 bootJar/배포 이미지에 포함되지 않는다)
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 	annotationProcessor 'org.projectlombok:lombok'
-	testImplementation 'org.springframework.boot:spring-boot-starter-jdbc-test'
+	testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
 	testImplementation 'org.springframework.boot:spring-boot-starter-thymeleaf-test'
 	testImplementation 'org.springframework.boot:spring-boot-starter-validation-test'
 	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'

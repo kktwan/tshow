@@ -66,18 +66,18 @@
 
 ## 2-1. 구현 (2026-10-08)
 
-`index` 패키지. 계산 로직과 외부 연동을 인터페이스로 갈라서 로직을 가짜 구현으로 테스트한다 (`VectorIndex`, `Embedder`, `IndexStateStore`).
+`domain/index` 패키지. 계산 로직과 외부 연동을 인터페이스로 갈라서 로직을 가짜 구현으로 테스트한다 (`VectorIndex`, `Embedder`, `IndexStateStore`).
 
 | 클래스 | 역할 |
 |---|---|
 | `EmbeddingTextBuilder` | 행사 → 임베딩 문장. 모양은 `resources/index/embedding.tpl`(코드 밖). 값이 없는 줄은 뺀다. 날짜·가격은 넣지 않는다. 설명은 `description-max-chars`까지 |
 | `PayloadBuilder` | 필터용 값: kind, category, sido, sigungu, start_day/end_day(에포크 일수), price_type, has_description, source_count, location(위경도). 값이 없는 필드는 넣지 않는다 |
 | `IndexService.sync()` | 바뀐 행사만 반영한다. **embed_hash**(임베딩 텍스트 해시)가 바뀌면 다시 임베딩, **payload_hash**만 바뀌면 payload만 갱신(재임베딩 없음), 논리삭제된 행사와 DB에 없는 점은 색인에서 삭제. 일부 실패해도 계속하고 실패한 행사는 상태를 기록하지 않아 다음에 재시도 |
-| `QdrantVectorIndex` | Qdrant 구현. 컬렉션 생성(코사인, 768차원), 필터 필드 payload 색인(keyword/integer/geo), upsert, payload 덮어쓰기, 삭제, 전체 id 조회, **필터 + 벡터 검색** |
-| `SpringAiEmbedder` | OpenAI `text-embedding-3-small`(768차원, tcine과 같은 설정). API 키가 없으면 색인 단계를 건너뛴다 |
-| `JdbcIndexStateStore` | `event.embed_hash / payload_hash / indexed_at`에 색인 상태를 저장 (마이그레이션 V4) |
+| `QdrantVectorIndex` (`infra/qdrant`) | Qdrant 구현. 컬렉션 생성(코사인, 768차원), 필터 필드 payload 색인(keyword/integer/geo), upsert, payload 덮어쓰기, 삭제, 전체 id 조회, **필터 + 벡터 검색** |
+| `SpringAiEmbedder` (`infra/embedding`) | OpenAI `text-embedding-3-small`(768차원, tcine과 같은 설정). API 키가 없으면 색인 단계를 건너뛴다 |
+| `JpaIndexStateStore` | `event.embed_hash / payload_hash / indexed_at`에 색인 상태를 저장 (마이그레이션 V4) |
 
-- 실행 순서: 수집 → 병합 → **색인**(`IngestScheduler`). 새벽 수집 뒤에 변경분만 올라간다.
+- 실행 순서: 수집 → 병합 → **색인**(`batch/DataPipelineService`, cron은 `PipelineScheduler`). 새벽 수집 뒤에 변경분만 올라간다.
 - 컬렉션은 공용 Qdrant 안에서 `tshow-events`(설정 `tshow.index.collection-name`)를 쓴다.
 - 검증: 단위 테스트 12건(가짜 구현으로 변경 판정 전반)과 **실제 Qdrant 통합 테스트** `QdrantVectorIndexIT`(`RUN_QDRANT_IT=true`, 로컬 `docker compose up -d qdrant`)에서 날짜·분류·지역·무료·지리 반경 필터와 payload 갱신·삭제를 확인했다.
 - 임베딩 호출 비용을 아끼는 장치: 같은 내용이면 다시 임베딩하지 않는다 (`다시_실행하면_바뀐_게_없어_임베딩하지_않는다` 테스트).

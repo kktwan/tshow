@@ -1,5 +1,7 @@
 package com.t.tshow.global.config;
 
+
+import com.t.tshow.infra.http.ApiPolicy;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.bind.DefaultValue;
 
@@ -50,5 +52,10 @@ public record IngestProperties(
             @DefaultValue("5000") long backoffMillis,
             @DefaultValue("30") int timeoutSeconds,
             @DefaultValue("0") int lookbackDays) {
+
+        /** 이 소스를 호출할 때 지킬 규칙 (간격·재시도·제한 시간) */
+        public ApiPolicy policy() {
+            return new ApiPolicy(intervalMillis, maxRetries, backoffMillis, timeoutSeconds);
+        }
     }
 }
