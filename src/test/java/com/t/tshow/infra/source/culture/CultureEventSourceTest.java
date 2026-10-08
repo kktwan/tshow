@@ -54,7 +54,7 @@ class CultureEventSourceTest {
         IngestProperties.Source s = base.culture();
         // 운영 설정처럼 기간 한도가 없는 값(400일)이면 6개월 범위가 한 구간이다
         IngestProperties props = new IngestProperties(base.horizonMonths(), base.refetchAfterHours(), false, base.cron(), base.zone(), base.appName(),
-                base.sources(), base.dateFormats(), true, base.kopis(),
+                base.sources(), base.dateFormats(), true, 3, 0.5, base.kopis(),
                 new IngestProperties.Source(s.baseUrl(), 400, s.pageSize(), 0, 0, 0, 5, 0), base.tourapi());
         FixtureHttp wide = new FixtureHttp().on("/period2", "culture/list.xml").on("/detail2", "culture/detail.xml");
         new CultureEventSource(props, new DateParser(props), "test-key", wide)
@@ -74,6 +74,7 @@ class CultureEventSourceTest {
         ctx.fresh = true;
         source(http).fetch(LocalDate.of(2026, 10, 8), LocalDate.of(2027, 4, 8), ctx);
         assertEquals(1, ctx.skipped);
+        assertEquals(1, ctx.listed.size(), "건너뛴 항목도 제공처 목록에 있었던 것으로 알린다 (안 그러면 삭제된 것으로 오해한다)");
         assertTrue(http.urls.stream().noneMatch(u -> u.contains("/detail2")));
     }
 }

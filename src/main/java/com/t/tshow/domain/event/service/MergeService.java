@@ -4,6 +4,8 @@ import com.t.tshow.domain.event.entity.Event;
 import com.t.tshow.domain.event.entity.EventSourceLink;
 import com.t.tshow.domain.event.repository.EventRepository;
 import com.t.tshow.domain.event.repository.EventSourceLinkRepository;
+import com.t.tshow.domain.event.repository.TakedownRepository;
+import com.t.tshow.domain.event.service.merge.TakedownFilter;
 import com.t.tshow.domain.event.service.merge.MergePlanner;
 import com.t.tshow.domain.ingest.entity.SourceRecord;
 import com.t.tshow.domain.ingest.service.SourceRecordService;
@@ -32,26 +34,32 @@ public class MergeService {
 
     /** 병합 결과 요약 */
     public record Summary(int sourceRecords, int events, int mergedEvents, int created, int updated, int unchanged,
-                          int deletedOrphans, int archived, int restored, int conflicts) {
+                          int deletedOrphans, int archived, int restored, int conflicts,
+                          int purgedRecords, int takedownExcluded, int imagesRemoved) {
         @Override
         public String toString() {
             return "소스 레코드 " + sourceRecords + " → 행사 " + events + " (여러 소스 병합 " + mergedEvents + ") | 신규 " + created
                     + ", 갱신 " + updated + ", 변경 없음 " + unchanged + ", 정리 " + deletedOrphans
-                    + " | 논리삭제 " + archived + ", 복구 " + restored + " | 충돌 " + conflicts;
+                    + " | 논리삭제 " + archived + ", 복구 " + restored + " | 충돌 " + conflicts
+                    + " | 종료 정리 " + purgedRecords + ", 삭제 요청 제외 " + takedownExcluded + " (이미지 " + imagesRemoved + ")";
         }
     }
 
     private final SourceRecordService sourceRecords;
     private final EventRepository events;
     private final EventSourceLinkRepository links;
+    private final TakedownRepository takedowns;
+    private final TakedownFilter takedownFilter;
     private final MergePlanner planner;
     private final MergeProperties properties;
 
     public MergeService(SourceRecordService sourceRecords, EventRepository events, EventSourceLinkRepository links,
-                        MergePlanner planner, MergeProperties properties) {
+                        TakedownRepository takedowns, TakedownFilter takedownFilter, MergePlanner planner, MergeProperties properties) {
         this.sourceRecords = sourceRecords;
         this.events = events;
         this.links = links;
+        this.takedowns = takedowns;
+        this.takedownFilter = takedownFilter;
         this.planner = planner;
         this.properties = properties;
     }
@@ -59,7 +67,13 @@ public class MergeService {
     @Transactional
     public Summary run() {
         Instant now = Instant.now();
-        List<SourceRecord> records = sourceRecords.findAll();
+        // 종료 후 오래된 소스 레코드는 DB 에서도 완전히 지운다 (행사의 보관 기간(retentionDays)이 지난 뒤에만 의미가 있도록 더 크게 잡는다)
+        int purgeDays = Math.max(properties.purgeDays(), properties.retentionDays() + 1);
+        int purged = sourceRecords.purgeEndedBefore(LocalDate.now().minusDays(purgeDays));
+
+        // 삭제 요청 목록을 먼저 적용한다: 요청받은 소스 레코드는 빼고, 이미지만 요청받은 것은 이미지를 뺀다
+        TakedownFilter.Result applied = takedownFilter.apply(sourceRecords.findAll(), takedowns.findAll());
+        List<SourceRecord> records = applied.records();
 
         // 행사 id 를 안정적으로 이어 쓰려고 현재 연결(소스 레코드 → 행사)을 읽어 둔다
         Map<Long, UUID> existingLinks = new HashMap<>();
@@ -97,7 +111,7 @@ public class MergeService {
         int restored = events.restoreEndedAfter(cutoff);
 
         Summary summary = new Summary(records.size(), plan.events().size(), merged, created, updated, unchanged,
-                orphans, archived, restored, plan.conflicts());
+                orphans, archived, restored, plan.conflicts(), purged, applied.excluded(), applied.imagesRemoved());
         log.info("병합 완료: {}", summary);
         return summary;
     }

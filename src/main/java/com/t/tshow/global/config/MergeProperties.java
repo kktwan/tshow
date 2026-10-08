@@ -19,7 +19,8 @@ import java.util.Map;
  * @param sameRegionTitleSimilarity 장소 이름·좌표가 맞지 않아도, 같은 시군구에서 제목이 이 값 이상 비슷하면 같은 행사로 본다 (같은 건물을 다른 이름으로 부르는 경우)
  * @param noPlaceTitleSimilarity 한쪽에 장소 정보(이름·좌표)가 없을 때 요구하는 더 엄격한 제목 유사도
  * @param priority              필드별 소스 우선순위 (앞에 있는 소스의 값을 우선 쓴다). 없는 필드는 default
- * @param retentionDays         종료 후 이 일수가 지나면 논리삭제한다
+ * @param retentionDays         종료 후 이 일수가 지나면 논리삭제한다 (검색·색인에서 빠진다)
+ * @param purgeDays             종료 후 이 일수가 지나면 DB 에서도 완전히 지운다 (소스 레코드 포함). retentionDays 보다 커야 한다
  */
 @ConfigurationProperties(prefix = "tshow.merge")
 public record MergeProperties(
@@ -31,7 +32,8 @@ public record MergeProperties(
         @DefaultValue("0.95") double sameRegionTitleSimilarity,
         @DefaultValue("1.0") double noPlaceTitleSimilarity,
         @DefaultValue Map<String, List<String>> priority,
-        @DefaultValue("30") int retentionDays) {
+        @DefaultValue("30") int retentionDays,
+        @DefaultValue("180") int purgeDays) {
 
     /** 필드의 소스 우선순위. 지정이 없으면 default, 그것도 없으면 빈 목록 (그때는 모든 소스를 같은 순위로 본다) */
     public List<String> priorityOf(String field) {

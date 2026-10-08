@@ -26,7 +26,7 @@ class MergeTest {
     private final TextNormalizer texts = new TextNormalizer(TestProperties.normalize());
     private final MergeProperties props = new MergeProperties(0.85, 0.6, 300, 0, 8, 0.95, 1.0,
             Map.of("default", List.of("KOPIS", "CULTURE", "TOURAPI"), "description", List.of("TOURAPI", "KOPIS", "CULTURE"),
-                    "image", List.of("KOPIS", "TOURAPI", "CULTURE")), 30);
+                    "image", List.of("KOPIS", "TOURAPI", "CULTURE")), 30, 180);
     private final DuplicateMatcher matcher = new DuplicateMatcher(props);
     private final MergePlanner planner = new MergePlanner(new Clusterer(matcher, props), new EventMerger(props));
 
@@ -202,7 +202,7 @@ class MergeTest {
 
     @Test
     void 시작일_허용_오차를_설정하면_하루_차이도_같은_행사로_본다() {
-        MergeProperties tolerant = new MergeProperties(0.85, 0.6, 300, 1, 8, 0.95, 1.0, Map.of("default", List.of("KOPIS", "CULTURE")), 30);
+        MergeProperties tolerant = new MergeProperties(0.85, 0.6, 300, 1, 8, 0.95, 1.0, Map.of("default", List.of("KOPIS", "CULTURE")), 30, 180);
         MergePlanner p = new MergePlanner(new Clusterer(new DuplicateMatcher(tolerant), tolerant), new EventMerger(tolerant));
         SourceRecord a = rec("KOPIS", "k1", "어린왕자", D1, D1.plusDays(5), "시흥아트센터", 37.37, 126.72);
         SourceRecord b = rec("CULTURE", "c1", "어린왕자", D1.plusDays(1), D1.plusDays(5), "시흥아트센터", 37.37, 126.72);

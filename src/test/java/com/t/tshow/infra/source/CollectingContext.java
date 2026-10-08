@@ -14,7 +14,14 @@ public class CollectingContext implements IngestContext {
 
     public final List<RawEvent> events = new ArrayList<>();
     public int skipped;
+    /** 제공처 목록에서 본 항목의 id (건너뛴 것도 포함) */
+    public final List<String> listed = new ArrayList<>();
     public boolean fresh;
+
+    @Override
+    public void listed(String sourceId) {
+        listed.add(sourceId);
+    }
 
     @Override
     public boolean isFresh(SourceType source, String sourceId) {

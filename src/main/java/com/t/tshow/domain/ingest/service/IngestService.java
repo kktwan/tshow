@@ -21,6 +21,8 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 수집 한 번을 실행한다: 소스 어댑터가 가져온 항목을 정규화해 source_record 에 저장하고, 건수와 "매핑 안 된 값"을 ingest_run 에 남긴다.
@@ -66,7 +68,13 @@ public class IngestService {
         Instant freshAfter = Instant.now().minus(Duration.ofHours(properties.refetchAfterHours()));
         log.info("{} 수집 시작: {} ~ {} (이미 저장된 {}건, {}시간 안에 받은 것은 건너뜀)", type, from, to, fetchedAt.size(), properties.refetchAfterHours());
 
+        Set<String> listed = ConcurrentHashMap.newKeySet();
         IngestContext context = new IngestContext() {
+            @Override
+            public void listed(String sourceId) {
+                listed.add(sourceId);
+            }
+
             @Override
             public boolean isFresh(SourceType s, String sourceId) {
                 Instant t = fetchedAt.get(sourceId);
@@ -109,6 +117,13 @@ public class IngestService {
         run.finish(status, counts, report.isEmpty() ? null : Json.write(report.unmapped()), message);
         runs.save(run);
         log.info("{} 수집 {}: {}", type, status, counts);
+        // 일부 실패하거나 중단된 수집은 목록이 온전하지 않으므로, 모두 성공한 수집에서만 제공처가 지운 항목을 가려낸다
+        if (status == RunStatus.SUCCESS) {
+            SourceRecordService.Reconciliation r = records.reconcile(type, listed, from, to,
+                    properties.missingRunsBeforeDelete(), properties.minListedRatio());
+            if (!r.applied()) log.warn("{} 제공처 삭제 반영을 건너뜀: {}", type, r.note());
+            else if (r.deleted() > 0) log.info("{} 제공처 목록에서 사라져 삭제한 항목: {}건", type, r.deleted());
+        }
         if (!report.isEmpty()) log.warn("{} 매핑 안 된 값: {}", type, report.unmapped());
     }
 }

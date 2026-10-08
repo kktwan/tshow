@@ -84,6 +84,7 @@ public abstract class AbstractEventSource implements EventSource {
          */
         public void deliver(String id, Supplier<RawEvent> fetchDetail) {
             if (id == null || !seen.add(id)) return;
+            context.listed(id);
             if (context.isFresh(type, id)) {
                 context.skipped();
                 return;

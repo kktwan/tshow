@@ -130,6 +130,15 @@ public class SourceRecord {
     @Column(name = "source_updated_at")
     private OffsetDateTime sourceUpdatedAt;
 
+    /** 수집 때 API 목록에서 마지막으로 본 시각 */
+    @Column(name = "last_seen_at")
+    private Instant lastSeenAt;
+
+    /** 성공한 수집에서 연속으로 목록에 없었던 횟수. 일정 횟수를 넘으면 제공처가 지운 것으로 보고 삭제한다 */
+    @Builder.Default
+    @Column(name = "missed_runs", nullable = false)
+    private int missedRuns = 0;
+
     @Column(name = "fetched_at", nullable = false)
     private Instant fetchedAt;
 

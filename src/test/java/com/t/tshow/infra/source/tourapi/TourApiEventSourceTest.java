@@ -20,7 +20,7 @@ class TourApiEventSourceTest {
         IngestProperties base = TestProperties.ingest();
         IngestProperties.Source s = base.tourapi();
         IngestProperties props = new IngestProperties(base.horizonMonths(), base.refetchAfterHours(), false, base.cron(), base.zone(), base.appName(),
-                base.sources(), base.dateFormats(), true, base.kopis(), base.culture(),
+                base.sources(), base.dateFormats(), true, 3, 0.5, base.kopis(), base.culture(),
                 new IngestProperties.Source(s.baseUrl(), s.windowDays(), s.pageSize(), 0, 0, 0, 5, lookbackDays));
         return new TourApiEventSource(props, new DateParser(props), "test-key", http);
     }
@@ -75,6 +75,7 @@ class TourApiEventSourceTest {
         ctx.fresh = true;
         source(http, 180).fetch(LocalDate.of(2026, 10, 8), LocalDate.of(2027, 4, 8), ctx);
         assertEquals(1, ctx.skipped);
+        assertEquals(1, ctx.listed.size());
         assertTrue(http.urls.stream().noneMatch(u -> u.contains("/detail")));
     }
 

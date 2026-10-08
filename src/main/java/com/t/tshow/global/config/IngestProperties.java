@@ -18,6 +18,8 @@ import java.util.List;
  * @param appName            TourAPI 가 요구하는 서비스(앱) 이름
  * @param sources            수집할 소스 (KOPIS, CULTURE, TOURAPI)
  * @param dateFormats        소스가 주는 날짜 문자열 형식들 (2026.10.21 / 20261016 / 2026-10-16)
+ * @param missingRunsBeforeDelete 성공한 수집에서 연속으로 이 횟수만큼 제공처 목록에 없던 항목은 제공처가 지운 것으로 보고 삭제한다
+ * @param minListedRatio     이번 수집의 목록이 있어야 할 항목 수의 이 비율보다 적으면 API 장애로 보고 삭제 판단을 건너뛴다 (대량 삭제 방지)
  * @param upgradeImageHttps  이미지 주소가 http:// 이면 https:// 로 바꿔 저장한다 (혼합 콘텐츠 방지)
  */
 @ConfigurationProperties(prefix = "tshow.ingest")
@@ -31,6 +33,8 @@ public record IngestProperties(
         @DefaultValue({"KOPIS", "CULTURE", "TOURAPI"}) List<String> sources,
         @DefaultValue({"yyyy.MM.dd", "yyyyMMdd", "yyyy-MM-dd"}) List<String> dateFormats,
         @DefaultValue("true") boolean upgradeImageHttps,
+        @DefaultValue("3") int missingRunsBeforeDelete,
+        @DefaultValue("0.5") double minListedRatio,
         @DefaultValue Source kopis,
         @DefaultValue Source culture,
         @DefaultValue Source tourapi) {

@@ -113,6 +113,10 @@
 - 확인: `curl` 로 `/api/search?q=...` 를 연달아 부르면 17번째쯤부터 429 가 나온다. 제한에 걸렸을 때는 nginx 로그에 `limiting requests` 가 남는다.
 - **AI 추천 제한**: `/recommend`, `/api/recommend` 는 IP당 분당 6번(한꺼번에 3번까지)이다 (`tshow_ai`). 앱에도 사람별·전체 하루 한도가 있다 (`tshow.recommend.daily-limit-per-client`, `daily-limit-total`). 이 설정은 아직 서버에 적용하지 않았다 — 위 적용 방법대로 파일을 두고 `nginx -t` 뒤 reload 한다.
 
+## 삭제 요청 처리 도구
+
+`deploy/ops/takedown.sh` 를 `/data/tshow/takedown.sh` 로 두고 `chmod +x` 한다. 행사·이미지 숨김, 제공처가 알려 준 id 제외, 소스 전체 삭제(`purge-source`), 등록 목록 보기(`list`)를 한다. 처리 표와 절차는 `README.md` 의 "삭제 요청 대응" 참고. 마이그레이션 V6 이 `takedown` 테이블을 만든 뒤에 쓸 수 있다.
+
 ## 데이터베이스 백업
 
 서버에는 백업이 아직 없다. `deploy/backup/pg-backup.sh` 를 `/data/tshow/pg-backup.sh` 로 두고 실행 권한(`chmod +x`)을 준 뒤 크론에 등록한다 (매일 새벽 4시, 7일 보관). 복원 방법은 스크립트 위쪽 주석에 있다. event 와 벡터 색인은 `source_record` 에서 다시 만들 수 있지만, 다시 받으면 KOPIS만 몇 시간이 걸리고 행사 id 가 바뀐다.

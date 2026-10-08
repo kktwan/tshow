@@ -15,7 +15,7 @@ public final class TestProperties {
     public static IngestProperties ingest() {
         IngestProperties.Source source = new IngestProperties.Source("http://source.test", 30, 100, 0, 0, 0, 5, 0);
         return new IngestProperties(6, 24, false, "0 0 3 * * *", "Asia/Seoul", "tshow",
-                List.of("KOPIS", "CULTURE", "TOURAPI"), List.of("yyyy.MM.dd", "yyyyMMdd", "yyyy-MM-dd"), true,
+                List.of("KOPIS", "CULTURE", "TOURAPI"), List.of("yyyy.MM.dd", "yyyyMMdd", "yyyy-MM-dd"), true, 3, 0.5,
                 source, source, source);
     }
 
