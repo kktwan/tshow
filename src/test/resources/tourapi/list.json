@@ -1,0 +1,4 @@
+{"response": {"header":{"resultCode":"0000","resultMsg":"OK"},"body": {"items": {"item":[
+{"addr1":"서울특별시 송파구 양재대로 932 (가락동)","addr2":"가락몰 3층 하늘공원","contentid":"3379778","contenttypeid":"15","eventstartdate":"20261016","eventenddate":"20261018","firstimage":"https://tong.visitkorea.or.kr/cms/resource/73/3553073_image2_1.png","firstimage2":"https://tong.visitkorea.or.kr/cms/resource/73/3553073_image3_1.png","cpyrhtDivCd":"Type3","mapx":"127.1107532009","mapy":"37.4960246566","modifiedtime":"20261006091502","tel":"02-3435-1000","title":"가락 옥토버페스트","lDongRegnCd":"11","lDongSignguCd":"710","lclsSystm3":"EV010600"},
+{"addr1":"경상남도 거창군","addr2":"","contentid":"1111111","contenttypeid":"15","eventstartdate":"20250101","eventenddate":"20250105","title":"이미 끝난 행사","lDongRegnCd":"48","lDongSignguCd":"880","lclsSystm3":"EV010100"}
+]},"numOfRows":100,"pageNo":1,"totalCount":2}}}

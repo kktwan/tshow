@@ -1,0 +1,89 @@
+spring:
+  application:
+    name: tshow
+  config:
+    # 로컬 IntelliJ에서 실행할 때 프로젝트 루트의 .env 파일을 자동으로 읽어온다 (없어도 무방)
+    import:
+      - optional:file:.env[.properties]
+      - optional:file:./.env[.properties]
+  datasource:
+    # 로컬 docker-compose.yml의 db 포트(5434:5432)를 기본값으로 사용한다 (운영은 DB_URL 환경변수로 주입)
+    url: ${DB_URL:jdbc:postgresql://localhost:5434/tshow}
+    username: ${DB_USERNAME:tshow}
+    password: ${DB_PASSWORD:tshow}
+  flyway:
+    # 스키마는 db/migration 의 SQL 로만 바꾼다
+    enabled: true
+  jackson:
+    time-zone: Asia/Seoul
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+server:
+  port: 8080
+  # 리버스 프록시(Nginx) 뒤에서 X-Forwarded-* 헤더를 신뢰해 https 주소로 리다이렉트/URL을 만든다
+  forward-headers-strategy: framework
+
+# 공공데이터 API 인증키 (data.go.kr 활용신청 후 발급). 값은 .env 로만 관리하고 커밋하지 않는다
+kopis:
+  api-key: ${KOPIS_API_KEY:}
+tourapi:
+  api-key: ${TOURAPI_API_KEY:}
+culture:
+  api-key: ${CULTURE_API_KEY:}
+
+# 수집 설정. 주소·간격·재시도·범위는 코드가 아니라 여기서 조정한다.
+tshow:
+  ingest:
+    # 오늘부터 몇 개월 앞까지 수집할지
+    horizon-months: ${TSHOW_INGEST_HORIZON_MONTHS:6}
+    # 이미 수집한 항목의 상세를 이 시간 안에는 다시 조회하지 않는다 (증분 수집)
+    refetch-after-hours: 24
+    # 앱 시작 때 바로 수집을 한 번 실행할지 (로컬 확인용). 운영은 cron 으로만 돌린다
+    on-startup: ${TSHOW_INGEST_ON_STARTUP:false}
+    cron: "0 0 3 * * *"
+    zone: Asia/Seoul
+    # TourAPI 호출에 필요한 서비스(앱) 이름
+    app-name: tshow
+    # 수집할 소스 (쉼표로 구분). 로컬에서 하나만 시험할 때 줄인다
+    sources: ${TSHOW_INGEST_SOURCES:KOPIS,CULTURE,TOURAPI}
+    kopis:
+      base-url: http://www.kopis.or.kr/openApi/restful
+      # KOPIS 는 조회 기간이 시작일+30일까지만 가능하다
+      window-days: 30
+      page-size: 100
+      # 호출이 몰리면 400(Request Blocked)으로 일시 차단된다. 호출 사이 간격(ms)과 재시도
+      interval-millis: 600
+      max-retries: 4
+      backoff-millis: 8000
+      timeout-seconds: 30
+    culture:
+      base-url: http://apis.data.go.kr/B553457/cultureinfo
+      # 기간 한도가 없어 한 번에 조회한다 (6개월 범위여도 한 구간)
+      window-days: 400
+      page-size: 100
+      interval-millis: 200
+      max-retries: 4
+      backoff-millis: 5000
+      timeout-seconds: 30
+    tourapi:
+      base-url: https://apis.data.go.kr/B551011/KorService2
+      window-days: 400
+      # 행사는 시작일 기준으로만 조회되므로 진행 중인 행사를 얻으려고 180일 전부터 조회하고 기간이 겹치는 것만 남긴다
+      lookback-days: 180
+      page-size: 100
+      interval-millis: 200
+      max-retries: 4
+      backoff-millis: 5000
+      timeout-seconds: 30
+  # 종료 후 보관 기간(일). 지나면 Postgres 는 논리삭제, Qdrant 는 물리삭제 (docs/index-design.md)
+  retention:
+    days: 30

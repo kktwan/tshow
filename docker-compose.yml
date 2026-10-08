@@ -1,0 +1,35 @@
+# 로컬 개발용 인프라. tcine(5433/6333/6334)과 포트가 겹치지 않게 다른 포트를 쓴다.
+services:
+  db:
+    image: postgres:17
+    container_name: tshow-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: tshow
+      POSTGRES_USER: ${DB_USERNAME:-tshow}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-tshow}
+      TZ: Asia/Seoul
+    ports:
+      - "5434:5432"
+    volumes:
+      - tshow-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-tshow} -d tshow"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # 벡터 색인을 붙일 때 사용 (HTTP 6335, gRPC 6336)
+  qdrant:
+    image: qdrant/qdrant:v1.18.3
+    container_name: tshow-qdrant
+    restart: unless-stopped
+    ports:
+      - "6335:6333"
+      - "6336:6334"
+    volumes:
+      - tshow-qdrant-data:/qdrant/storage
+
+volumes:
+  tshow-db-data:
+  tshow-qdrant-data:

@@ -1,0 +1,73 @@
+# 표준 분류와 소스별 분류 변환표. 새 소스 분류가 생기면 코드가 아니라 이 파일을 고친다.
+# 변환하지 못한 값은 fallback 분류로 저장되고 수집 결과(ingest_run)의 "매핑 안 된 값"에 기록된다.
+
+# kind: PERFORMANCE(공연) / EXHIBITION(전시) / FESTIVAL(축제·행사)
+categories:
+  - { id: theater,           name: 연극,             kind: PERFORMANCE }
+  - { id: musical,           name: 뮤지컬·오페라,    kind: PERFORMANCE }
+  - { id: classical,         name: 클래식,           kind: PERFORMANCE }
+  - { id: traditional,       name: 국악·전통공연,    kind: PERFORMANCE }
+  - { id: concert,           name: 대중음악·콘서트,  kind: PERFORMANCE }
+  - { id: dance,             name: 무용,             kind: PERFORMANCE }
+  - { id: variety,           name: 서커스·마술·넌버벌, kind: PERFORMANCE }
+  - { id: family,            name: 아동·가족,        kind: PERFORMANCE }
+  - { id: performance_other, name: 기타 공연,        kind: PERFORMANCE }
+  - { id: exhibition,        name: 전시,             kind: EXHIBITION }
+  - { id: festival,          name: 축제,             kind: FESTIVAL }
+  - { id: expo,              name: 박람회,           kind: FESTIVAL }
+  - { id: sports,            name: 스포츠 경기,      kind: FESTIVAL }
+  - { id: event_other,       name: 기타 행사,        kind: FESTIVAL }
+
+# 소스 분류를 찾지 못했을 때 쓸 분류
+fallback:
+  KOPIS: performance_other
+  CULTURE: performance_other
+  TOURAPI: event_other
+
+mappings:
+  # KOPIS 장르 이름(genrenm)
+  KOPIS:
+    "연극": theater
+    "뮤지컬": musical
+    "서양음악(클래식)": classical
+    "한국음악(국악)": traditional
+    "대중음악": concert
+    "무용(서양/한국무용)": dance
+    "대중무용": dance
+    "서커스/마술": variety
+    "복합": performance_other
+
+  # 문화정보원 분야 이름(realmName)
+  CULTURE:
+    "음악/콘서트": concert
+    "전시": exhibition
+    "연극": theater
+    "뮤지컬/오페라": musical
+    "무용/발레": dance
+    "국악": traditional
+    "아동/가족": family
+    "행사/축제": festival
+    "기타": performance_other
+
+  # 한국관광공사 분류체계 코드(lclsSystm3). 행사 분류(EV...)
+  TOURAPI:
+    EV010100: festival
+    EV010200: festival
+    EV010300: festival
+    EV010400: festival
+    EV010500: festival
+    EV010600: festival
+    EV020100: traditional
+    EV020200: theater
+    EV020300: musical
+    EV020400: musical
+    EV020500: dance
+    EV020600: classical
+    EV020700: concert
+    EV020800: performance_other
+    EV020900: performance_other
+    EV021000: variety
+    EV030100: exhibition
+    EV030200: expo
+    EV030300: sports
+    EV030400: event_other
