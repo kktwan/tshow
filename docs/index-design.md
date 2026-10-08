@@ -60,7 +60,7 @@
 | `has_description`, `source_count` | 순위 보조, 품질 |
 | `updated_at` | 갱신 추적 |
 
-**검색 순서 (tcine 교훈)**: 날짜·지역·분류·종료 여부 같은 **필수 조건은 벡터 검색 전에 payload 필터로 거른다.** 그 안에서 벡터 + 키워드를 결합하고 순위를 매긴다. 필터를 나중에 걸면 조건에 맞는 행사가 후보에 들어오지 못한다.
+**검색 순서**: 날짜·지역·분류·종료 여부 같은 **필수 조건은 벡터 검색 전에 payload 필터로 거른다.** 그 안에서 벡터 + 키워드를 결합하고 순위를 매긴다. 필터를 나중에 걸면 조건에 맞는 행사가 후보에 들어오지 못한다.
 
 **갱신**: 일정·상태·가격·링크가 바뀌면 **payload만 갱신**한다. `embed_hash`가 바뀐 경우(제목·설명 변경)만 재임베딩한다. 종료된 일정은 검색에서 빼되 일정 기간 보관할지는 결정이 필요하다.
 
@@ -74,7 +74,7 @@
 | `PayloadBuilder` | 필터용 값: kind, category, sido, sigungu, start_day/end_day(에포크 일수), price_type, has_description, source_count, location(위경도). 값이 없는 필드는 넣지 않는다 |
 | `IndexService.sync()` | 바뀐 행사만 반영한다. **embed_hash**(임베딩 텍스트 해시)가 바뀌면 다시 임베딩, **payload_hash**만 바뀌면 payload만 갱신(재임베딩 없음), 논리삭제된 행사와 DB에 없는 점은 색인에서 삭제. 일부 실패해도 계속하고 실패한 행사는 상태를 기록하지 않아 다음에 재시도 |
 | `QdrantVectorIndex` (`infra/qdrant`) | Qdrant 구현. 컬렉션 생성(코사인, 768차원), 필터 필드 payload 색인(keyword/integer/geo), upsert, payload 덮어쓰기, 삭제, 전체 id 조회, **필터 + 벡터 검색** |
-| `SpringAiEmbedder` (`infra/embedding`) | OpenAI `text-embedding-3-small`(768차원, tcine과 같은 설정). API 키가 없으면 색인 단계를 건너뛴다 |
+| `SpringAiEmbedder` (`infra/embedding`) | OpenAI `text-embedding-3-small`(768차원). API 키가 없으면 색인 단계를 건너뛴다 |
 | `JpaIndexStateStore` | `event.embed_hash / payload_hash / indexed_at`에 색인 상태를 저장 (마이그레이션 V4) |
 
 - 실행 순서: 수집 → 병합 → **색인**(`batch/DataPipelineService`, cron은 `PipelineScheduler`). 새벽 수집 뒤에 변경분만 올라간다.

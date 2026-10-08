@@ -1,6 +1,6 @@
 # 배포 가이드 (Oracle Cloud A1 + Jenkins Blue-Green)
 
-tcine과 같은 서버·같은 구조를 쓴다. 공용 인프라(`infra-nginx`, `infra-certbot`, `infra-jenkins`, `infra-postgres`, `infra-qdrant`, 네트워크 `infra-net`)는 이미 있고, tshow는 **자기 앱 컨테이너(`tshow-blue`/`tshow-green`), 자기 데이터베이스, 자기 Nginx 설정, 자기 도메인**만 추가한다.
+공용 인프라(`infra-nginx`, `infra-certbot`, `infra-jenkins`, `infra-postgres`, `infra-qdrant`, 네트워크 `infra-net`)는 이미 있고, tshow는 **자기 앱 컨테이너(`tshow-blue`/`tshow-green`), 자기 데이터베이스, 자기 Nginx 설정, 자기 도메인**만 추가한다.
 
 > 에이전트는 코드와 배포 파일을 만드는 데까지만 한다. 아래 서버 작업, Git push, Jenkins 빌드는 사용자가 직접 한다.
 
@@ -32,11 +32,11 @@ tcine과 같은 서버·같은 구조를 쓴다. 공용 인프라(`infra-nginx`,
 
 ## 서버에서 처음 한 번 할 일
 
-1. **도메인**: DuckDNS에 `tshow` 서브도메인을 만들고 tcine과 같은 서버 IP를 가리키게 한다.
+1. **도메인**: DuckDNS에 `tshow` 서브도메인을 만들고 서버 IP를 가리키게 한다.
 
 2. **데이터베이스**: 공용 Postgres에 tshow 전용 사용자와 DB를 만든다 (비밀번호는 직접 정한다).
    ```bash
-   docker exec -it infra-postgres psql -U tcine -d postgres \
+   docker exec -it infra-postgres psql -U <공용_Postgres_관리자_계정> -d postgres \
      -c "CREATE USER tshow WITH PASSWORD '여기에_비밀번호';" \
      -c "CREATE DATABASE tshow OWNER tshow;"
    ```
@@ -90,7 +90,7 @@ tcine과 같은 서버·같은 구조를 쓴다. 공용 인프라(`infra-nginx`,
 ## 알아 둘 점
 
 - 수집기는 슬롯이 하나만 떠 있을 때(정상 운영) 안전하다. 두 슬롯이 동시에 떠 있는 짧은 전환 구간에는 정기 수집 시각(새벽 3시)을 피한다.
-- 공용 Qdrant는 yummy·tcine과 함께 쓴다. tshow의 벡터 컬렉션은 이름을 따로 정해서 만든다 (색인 단계에서 추가).
+- 공용 Qdrant는 다른 서비스와 함께 쓴다. tshow의 벡터 컬렉션은 이름을 따로 정해서 만든다 (색인 단계에서 추가).
 - 메모리: tshow 컨테이너는 `mem_limit 1g`, JVM `-Xmx768m`으로 시작한다. 벡터 색인·AI를 붙이면 늘린다.
 
 ## 운영 첫 수집 결과 (2026-10-08)

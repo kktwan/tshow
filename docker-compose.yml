@@ -1,4 +1,4 @@
-# 로컬 개발용 인프라. tcine(5433/6333/6334)과 포트가 겹치지 않게 다른 포트를 쓴다.
+# 로컬 개발용 인프라. DB 는 5434, Qdrant 는 6335(HTTP)/6336(gRPC) 포트를 쓴다.
 services:
   db:
     image: postgres:17

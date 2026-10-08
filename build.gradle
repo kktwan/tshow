@@ -45,7 +45,7 @@ dependencies {
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 	testAnnotationProcessor 'org.projectlombok:lombok'
 
-	// 벡터 색인: 임베딩(OpenAI) + 벡터 DB(Qdrant). Spring AI 2.0.x 가 Spring Boot 4 용 (tcine 과 같은 버전)
+	// 벡터 색인: 임베딩(OpenAI) + 벡터 DB(Qdrant). Spring AI 2.0.x 가 Spring Boot 4 용
 	implementation 'org.springframework.ai:spring-ai-starter-model-openai'
 	implementation 'org.springframework.ai:spring-ai-starter-vector-store-qdrant'
 	// AI 추천: 버튼을 눌렀을 때만 Gemini 가 검색 결과 중에서 고르고 이유를 붙인다
