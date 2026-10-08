@@ -28,6 +28,16 @@ spring:
         order_updates: true
   jackson:
     time-zone: Asia/Seoul
+  thymeleaf:
+    cache: ${SPRING_THYMELEAF_CACHE:false}
+  web:
+    resources:
+      # 배포 후 강력 새로고침 없이도 수정된 CSS/JS 가 바로 반영되도록 파일 내용 해시를 URL 에 붙인다
+      chain:
+        strategy:
+          content:
+            enabled: true
+            paths: /**
   ai:
     # 쓰는 것은 임베딩(OpenAI)뿐이다. 나머지 OpenAI 기능은 꺼서 키가 없어도 앱이 뜨게 한다
     model:
@@ -156,3 +166,18 @@ tshow:
   # 종료 후 보관 기간(일). 지나면 Postgres 는 논리삭제, Qdrant 는 물리삭제 (docs/index-design.md)
   retention:
     days: 30
+
+  # 검색 설정. 점수 하한·후보 수·화면 크기는 여기서 조정한다 (SearchProperties 설명 참고)
+  search:
+    candidate-limit: 60
+    # 벡터 유사도가 이 값보다 낮은 후보는 관련 없는 것으로 보고 버린다 (실제 점수 분포를 보고 정한다)
+    min-score: 0.3
+    page-size: 12
+    # 검색어는 이 글자 수까지만 쓴다 (임베딩 호출 비용과 남용 방지)
+    max-query-length: 100
+    default-radius-km: 5
+    # 출처 표기에 쓸 이름. 각 서비스의 이용 조건에 맞는 표기를 쓴다
+    source-names:
+      KOPIS: 공연예술통합전산망(KOPIS)
+      CULTURE: 한국문화정보원
+      TOURAPI: 한국관광공사

@@ -1,7 +1,7 @@
 # 색인 설계 (초안)
 
 수집 → 정규화 → 중복 제거 → 저장(Postgres) → 벡터 색인(Qdrant) → 검색의 데이터 구조와 규칙을 정한다.
-근거는 [data-sources.md](data-sources.md)의 실측 결과이고, 코드 원칙은 [CLAUDE.md](../CLAUDE.md)를 따른다.
+근거는 [data-sources.md](data-sources.md)의 실측 결과이고, 코드 원칙은 [README.md](../README.md)를 따른다.
 **하드코딩하지 않는다**: 변환표·가중치·임계값은 리소스 파일 또는 `@ConfigurationProperties`에 둔다.
 
 > 상태: 초안. 아래 "확인이 필요한 결정"을 정한 뒤 확정하고 코드를 쓴다.

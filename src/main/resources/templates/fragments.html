@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="head(title)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <title th:text="${title}">tshow</title>
+    <link rel="icon" type="image/svg+xml" th:href="@{/favicon.svg}">
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+
+<header class="topbar" th:fragment="header">
+    <div class="wrap topbar-inner">
+        <a class="brand" th:href="@{/}" aria-label="tshow 처음으로">
+            <span class="brand-mark">🎭</span><span class="brand-name">tshow</span>
+        </a>
+        <span class="topbar-note">공연 · 전시 · 축제를 한곳에서</span>
+    </div>
+</header>
+
+<footer class="footer" th:fragment="footer">
+    <div class="wrap">
+        <p>공연·전시·행사 정보는 공연예술통합전산망(KOPIS), 한국관광공사, 한국문화정보원이 제공한 자료를 가공해 보여 드려요.
+            일정과 요금은 바뀔 수 있으니 예매하거나 방문하기 전에 꼭 확인해 주세요.</p>
+    </div>
+</footer>
+
+</body>
+</html>

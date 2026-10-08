@@ -1,6 +1,12 @@
 # 표준 분류와 소스별 분류 변환표. 새 소스 분류가 생기면 코드가 아니라 이 파일을 고친다.
 # 변환하지 못한 값은 fallback 분류로 저장되고 수집 결과(ingest_run)의 "매핑 안 된 값"에 기록된다.
 
+# 종류(kind)와 화면에 보여 줄 이름
+kinds:
+  PERFORMANCE: 공연
+  EXHIBITION: 전시
+  FESTIVAL: 축제·행사
+
 # kind: PERFORMANCE(공연) / EXHIBITION(전시) / FESTIVAL(축제·행사)
 categories:
   - { id: theater,           name: 연극,             kind: PERFORMANCE }

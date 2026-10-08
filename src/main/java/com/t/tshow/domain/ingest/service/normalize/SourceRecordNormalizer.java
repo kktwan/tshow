@@ -4,6 +4,7 @@ import com.t.tshow.domain.ingest.dto.RawEvent;
 import com.t.tshow.domain.ingest.dto.TicketLink;
 import com.t.tshow.domain.ingest.entity.SourceRecord;
 import com.t.tshow.global.config.IngestProperties;
+import com.t.tshow.global.util.Html;
 import com.t.tshow.global.util.Json;
 import com.t.tshow.global.util.Texts;
 import org.springframework.stereotype.Component;
@@ -44,7 +45,7 @@ public class SourceRecordNormalizer {
                 .title(raw.title()).titleNorm(texts.title(raw.title())).description(Texts.blankToNull(raw.description()))
                 .startDate(raw.startDate()).endDate(raw.endDate())
                 .venueName(Texts.blankToNull(raw.venueName())).venueNameNorm(texts.venue(raw.venueName()))
-                .address(Texts.blankToNull(raw.address()))
+                .address(regions.cleanAddress(Texts.blankToNull(raw.address())))
                 .sidoCode(region.sidoCode()).sigunguCode(region.sigunguCode()).lat(raw.lat()).lon(raw.lon())
                 .priceType(prices.classify(raw.priceText()).name()).priceText(Texts.blankToNull(raw.priceText()))
                 .ageText(Texts.blankToNull(raw.ageText())).runtimeText(Texts.blankToNull(raw.runtimeText()))
@@ -62,11 +63,16 @@ public class SourceRecordNormalizer {
      * 제목·장소·본문 같은 사람이 읽는 글에만 적용하고 주소(URL)나 원본 응답은 건드리지 않는다.
      */
     private static RawEvent unescaped(RawEvent r) {
-        return new RawEvent(r.source(), r.sourceId(), unescape(r.title()), unescape(r.description()), r.sourceCategory(),
+        return new RawEvent(r.source(), r.sourceId(), unescape(r.title()), text(r.description()), r.sourceCategory(),
                 r.startDate(), r.endDate(), unescape(r.venueName()), unescape(r.address()), unescape(r.sidoText()), unescape(r.sigunguText()),
-                r.sidoCode(), r.sigunguCode(), r.lat(), r.lon(), unescape(r.priceText()), unescape(r.ageText()),
-                unescape(r.runtimeText()), unescape(r.scheduleText()), unescape(r.castText()), unescape(r.hostText()),
+                r.sidoCode(), r.sigunguCode(), r.lat(), r.lon(), text(r.priceText()), text(r.ageText()),
+                text(r.runtimeText()), text(r.scheduleText()), text(r.castText()), text(r.hostText()),
                 r.imageUrl(), r.imageLicense(), r.infoUrl(), r.ticketLinks(), r.sourceUpdatedAt(), r.raw());
+    }
+
+    /** 본문류 글: 엔티티를 풀고 HTML 태그를 걷어 보통 글로 만든다 (소개글이 HTML 로 오는 소스가 있다). 제목·장소·주소에는 쓰지 않는다 */
+    private static String text(String value) {
+        return Html.toText(unescape(value));
     }
 
     /** 더 바뀌지 않을 때까지 (최대 3번) 해제한다 */

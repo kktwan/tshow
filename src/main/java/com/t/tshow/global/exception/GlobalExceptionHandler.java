@@ -6,11 +6,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
-/** REST API 의 예외를 {@link ApiResponse#error} 형식으로 바꾼다 */
-@RestControllerAdvice
+/** REST API 컨트롤러의 예외를 {@link ApiResponse#error} 형식으로 바꾼다 (화면 컨트롤러는 {@link ViewExceptionHandler}) */
+@RestControllerAdvice(annotations = RestController.class)
 public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);

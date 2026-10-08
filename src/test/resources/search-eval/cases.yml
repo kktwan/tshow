@@ -1,0 +1,66 @@
+# 검색 평가 세트. 검색을 고칠 때는 사례 하나를 맞추는 대신 이 세트 전체의 전후를 비교한다.
+# 실행: RUN_SEARCH_EVAL=true ./gradlew.bat test --tests "*SearchEvalTest*" --no-daemon (로컬 Postgres·Qdrant 와 임베딩 키 필요)
+#
+# expect:
+#   min-results / max-results      결과 건수 범위 (관련 없는 질의는 max-results: 0)
+#   all                            나온 행사 모두가 지켜야 하는 조건 (조건 필터가 새지 않는지)
+#     region-prefix, price, category(분류 이름), period-overlaps(시작~끝 날짜는 today 기준 이름: weekend)
+#   top                            위쪽 n 건 중 min-match 건이 category(분류 이름 중 하나) 이거나 title-contains(제목에 들어 있는 말 중 하나)
+cases:
+  - name: 날짜·지역·무료·분류를 한 번에 조건으로
+    query: 이번 주말 서울 무료 전시
+    expect:
+      min-results: 1
+      all: { region-prefix: 서울, price: FREE, category: 전시, period-overlaps: weekend }
+
+  - name: 지역과 분류
+    query: 부산에서 열리는 축제
+    expect:
+      min-results: 1
+      all: { region-prefix: 부산, category: 축제 }
+
+  - name: 이번 달 무료 공연
+    query: 이번 달 무료 공연
+    expect:
+      min-results: 1
+      all: { price: FREE }
+
+  - name: 클래식 연주회
+    query: 클래식 연주회
+    expect:
+      min-results: 5
+      top: { n: 5, min-match: 5, category: [클래식] }
+
+  - name: 뮤지컬
+    query: 뮤지컬
+    expect:
+      min-results: 5
+      top: { n: 5, min-match: 4, category: [뮤지컬·오페라] }
+
+  - name: 아이와 갈 만한 공연
+    query: 아이와 갈 만한 공연
+    expect:
+      min-results: 5
+      top: { n: 10, min-match: 5, category: [아동·가족], title-contains: [어린이, 아이, 가족, 동화, 키즈, 동요, 인형극] }
+
+  - name: 어린이 전시
+    query: 어린이와 함께 보는 전시
+    expect:
+      min-results: 1
+      top: { n: 10, min-match: 3, category: [전시] }
+
+  - name: 대학로 연극
+    query: 대학로 연극
+    expect:
+      min-results: 3
+      top: { n: 10, min-match: 5, category: [연극] }
+
+  - name: 관련 없는 글자 나열
+    query: asdfasdf
+    expect:
+      max-results: 0
+
+  - name: 관련 없는 주제
+    query: 양자역학 논문 작성법
+    expect:
+      max-results: 0

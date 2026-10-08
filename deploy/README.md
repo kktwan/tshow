@@ -11,7 +11,7 @@ tcine과 같은 서버·같은 구조를 쓴다. 공용 인프라(`infra-nginx`,
 | `Jenkinsfile` | (Jenkins 파이프라인이 읽음) | 체크아웃 → 이미지 빌드 → 새 슬롯 기동 → 헬스체크 → Nginx 전환 → 구 슬롯 중지. 롤백 파라미터 지원 |
 | `Dockerfile` | | 멀티스테이지 빌드 (JDK 21 → JRE 21), `/actuator/health` 헬스체크 |
 | `deploy/docker-compose.app.yml` | `/data/tshow/docker-compose.app.yml` | `tshow-blue` / `tshow-green` 슬롯 (Jenkins가 복사해 준다) |
-| `deploy/nginx/tshow.conf` | `/data/infra/nginx/conf.d/tshow.conf` | `tshow.duckdns.org` 가상 호스트 (80 → 443, 활성 슬롯으로 프록시) |
+| `deploy/nginx/tshow.conf` | `/data/infra/nginx/conf.d/tshow.conf` | `tshow.duckdns.org` 가상 호스트 (80 → 443, 활성 슬롯으로 프록시). **검색 호출 제한 포함**: 검색어(`q`)가 있는 요청은 IP당 분당 30번(한꺼번에 15번까지), 전체 요청은 초당 20번. 넘으면 429 와 안내 문구. 임베딩 호출 비용과 남용을 막는다 |
 | `deploy/nginx/tshow-url.inc` | `/data/infra/nginx/conf.d/tshow-url.inc` | 활성 슬롯 이름 (Jenkins가 바꾸고 `nginx -s reload`) |
 | `deploy/.env.example` | `/data/tshow/.env` | 서버 환경변수 (DB 비밀번호, API 키). **서버에만 둔다** |
 
@@ -104,3 +104,10 @@ tcine과 같은 서버·같은 구조를 쓴다. 공용 인프라(`infra-nginx`,
 - 병합 후 **행사 3,873건** (여러 소스 병합 481건). 실패 0건.
 - 매핑 안 된 값은 KOPIS의 인천 옛 구 이름(`동구`, `서구`, `중구` 28건)뿐이었다. 2026년 개편으로 구가 바뀌었는데 소스는 옛 주소를 준다. `서구`는 `서해구`/`검단구` 둘로 갈라져 한 구로 정할 수 없어서 별칭을 추가하지 않고 시도 단위로 둔다 (필요하면 `region-aliases.yml`의 `sigungu` 별칭에 추가).
 - 수집이 끝났으면 `.env`의 `TSHOW_INGEST_ON_STARTUP`을 `false`로 되돌린다 (그대로 두면 재시작 때마다 수집이 다시 시작된다).
+
+## 호출 제한 (nginx)
+
+`deploy/nginx/tshow.conf` 의 `limit_req_zone` 두 개(`tshow_search`, `tshow_general`)가 한다. 값은 같은 파일에서 고친다.
+- 적용 방법: 파일을 서버 `/data/infra/nginx/conf.d/tshow.conf` 로 두고 `docker exec infra-nginx nginx -t && docker exec infra-nginx nginx -s reload`.
+- 2026-10-08 적용함. 적용 전 파일은 서버 `/data/tshow/tshow.conf.bak-before-limit` 에 있다 (되돌릴 때 사용).
+- 확인: `curl` 로 `/api/search?q=...` 를 연달아 부르면 17번째쯤부터 429 가 나온다. 제한에 걸렸을 때는 nginx 로그에 `limiting requests` 가 남는다.

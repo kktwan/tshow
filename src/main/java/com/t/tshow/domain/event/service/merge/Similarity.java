@@ -1,13 +1,13 @@
 package com.t.tshow.domain.event.service.merge;
 
 
+import com.t.tshow.global.util.Geo;
+
 import java.util.HashMap;
 import java.util.Map;
 
 /** 문자열 유사도와 좌표 거리 계산 (중복 판정용 순수 함수) */
 public final class Similarity {
-
-    private static final double EARTH_RADIUS_METERS = 6_371_000.0;
 
     private Similarity() {
     }
@@ -42,12 +42,8 @@ public final class Similarity {
         return shorter.length() >= minLength && longer.contains(shorter);
     }
 
-    /** 두 좌표 사이 거리(m). 하버사인 공식 */
+    /** 두 좌표 사이 거리(m) */
     public static double distanceMeters(double lat1, double lon1, double lat2, double lon2) {
-        double dLat = Math.toRadians(lat2 - lat1);
-        double dLon = Math.toRadians(lon2 - lon1);
-        double h = Math.sin(dLat / 2) * Math.sin(dLat / 2)
-                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-        return 2 * EARTH_RADIUS_METERS * Math.asin(Math.sqrt(h));
+        return Geo.distanceMeters(lat1, lon1, lat2, lon2);
     }
 }

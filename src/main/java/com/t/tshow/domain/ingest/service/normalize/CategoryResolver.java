@@ -8,7 +8,9 @@ import org.yaml.snakeyaml.Yaml;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -24,7 +26,9 @@ public class CategoryResolver {
     public record Category(String id, String name, String kind) {
     }
 
-    private final Map<String, Category> categories = new HashMap<>();
+    private final Map<String, Category> categories = new LinkedHashMap<>();
+    /** 종류(PERFORMANCE…) → 화면에 보여 줄 이름 */
+    private final Map<String, String> kindNames = new LinkedHashMap<>();
     private final Map<SourceType, Map<String, String>> mappings = new HashMap<>();
     private final Map<SourceType, String> fallback = new HashMap<>();
 
@@ -36,6 +40,7 @@ public class CategoryResolver {
     private void load() {
         try (InputStream in = new ClassPathResource(RESOURCE).getInputStream()) {
             Map<String, Object> root = new Yaml().load(in);
+            ((Map<Object, Object>) root.get("kinds")).forEach((k, v) -> kindNames.put(str(k), str(v)));
             for (Map<String, Object> c : (List<Map<String, Object>>) root.get("categories")) {
                 Category category = new Category(str(c.get("id")), str(c.get("name")), str(c.get("kind")));
                 categories.put(category.id(), category);
@@ -61,6 +66,21 @@ public class CategoryResolver {
         if (!categories.containsKey(id)) {
             throw new IllegalStateException(RESOURCE + " 에 정의되지 않은 표준 분류: " + id);
         }
+    }
+
+    /** 표준 분류 전체 (분류표에 적힌 순서) */
+    public List<Category> all() {
+        return List.copyOf(categories.values());
+    }
+
+    /** 종류 이름 (예: PERFORMANCE → 공연). 모르면 코드를 그대로 */
+    public String kindName(String kind) {
+        return kindNames.getOrDefault(kind, kind);
+    }
+
+    /** 종류와 화면 이름 (분류표에 적힌 순서) */
+    public Map<String, String> kinds() {
+        return Collections.unmodifiableMap(kindNames);
     }
 
     /** 표준 분류의 사람이 읽는 이름 (예: theater → 연극). 모르면 id 를 그대로 */

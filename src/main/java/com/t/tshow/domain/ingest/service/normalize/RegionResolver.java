@@ -12,6 +12,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -50,9 +51,29 @@ public class RegionResolver {
     /** 시도 코드 → (소스가 주는 옛 시군구 이름 → 현재 이름) */
     private final Map<String, Map<String, String>> sigunguRenames = new HashMap<>();
 
+    /** 시도 이름·줄임말·별칭 → 시도 코드 (질의 속 지역 찾기용) */
+    private final Map<String, String> sidoByWord = new HashMap<>();
+    /** 시군구 이름·줄임말 → 가능한 (시도 코드, 시군구 코드) 목록. 같은 이름이 여러 시도에 있을 수 있다 */
+    private final Map<String, List<String[]>> sigunguByWord = new HashMap<>();
+
     public RegionResolver() {
         loadCsv();
         loadAliases();
+        indexWords();
+    }
+
+    private void indexWords() {
+        sidoNameByCode.forEach((code, name) -> {
+            sidoByWord.put(name, code);
+            sidoByWord.put(stem(name, SIDO_SUFFIXES), code);
+        });
+        sidoByWord.putAll(sidoByAlias);
+        sigunguNameByCode.forEach((sido, byCode) -> byCode.forEach((code, name) -> {
+            sigunguByWord.computeIfAbsent(name, k -> new ArrayList<>()).add(new String[]{sido, code});
+            String stem = stem(name, SIGUNGU_SUFFIXES);
+            // 한 글자 줄임말(중, 서, 동)은 일반 낱말과 구분되지 않아 쓰지 않는다
+            if (stem.length() >= 2) sigunguByWord.computeIfAbsent(stem, k -> new ArrayList<>()).add(new String[]{sido, code});
+        }));
     }
 
     private void loadCsv() {
@@ -136,10 +157,97 @@ public class RegionResolver {
         return new Region(sido, sigungu);
     }
 
+    /** 질의 속 지역 언급. matchedWords 는 질의에서 지역을 가리키는 낱말(조사 포함 원문) */
+    public record Mention(String sidoCode, String sigunguCode, List<String> matchedWords) {
+    }
+
+    /**
+     * 문장 속에서 시도·시군구 이름을 찾는다. 낱말이 지역 이름이거나 "지역 이름 + 조사"(서울에서, 강남구의)일 때만 인정한다.
+     * 여러 시도에 있는 시군구 이름(중구·서구)은 시도가 함께 언급됐을 때만 쓰고, 그렇지 않으면 무시한다.
+     *
+     * @param particles 지역 이름 뒤에 붙을 수 있는 조사·말 (사전 파일에서 온다)
+     */
+    public Mention findIn(String text, Collection<String> particles) {
+        if (text == null || text.isBlank()) return null;
+        List<String> suffixes = particles.stream().sorted((a, b) -> b.length() - a.length()).toList();
+        List<String> matched = new ArrayList<>();
+        String sido = null;
+        List<List<String[]>> sigunguHits = new ArrayList<>();
+        for (String token : text.trim().split("\\s+")) {
+            String word = region(token, suffixes);
+            if (word == null) continue;
+            if (sidoByWord.containsKey(word)) {
+                if (sido == null) sido = sidoByWord.get(word);
+                matched.add(token);
+            } else {
+                sigunguHits.add(sigunguByWord.get(word));
+                matched.add(token);
+            }
+        }
+        String sigungu = null;
+        for (List<String[]> hit : sigunguHits) {
+            String wanted = sido;
+            List<String[]> candidates = wanted == null ? hit : hit.stream().filter(c -> c[0].equals(wanted)).toList();
+            if (candidates.size() == 1) {
+                if (sido == null) sido = candidates.get(0)[0];
+                sigungu = candidates.get(0)[1];
+                break;
+            }
+        }
+        if (sido == null) return null;
+        return new Mention(sido, sigungu, matched);
+    }
+
+    /** 낱말에서 조사를 떼어 지역 이름이면 그 이름을, 아니면 null */
+    private String region(String token, List<String> suffixes) {
+        if (isRegionWord(token)) return token;
+        for (String suffix : suffixes) {
+            if (token.length() > suffix.length() && token.endsWith(suffix)) {
+                String word = token.substring(0, token.length() - suffix.length());
+                if (isRegionWord(word)) return word;
+            }
+        }
+        return null;
+    }
+
+    private boolean isRegionWord(String word) {
+        return sidoByWord.containsKey(word) || sigunguByWord.containsKey(word);
+    }
+
+    /** 시도 목록: 코드 → 짧은 이름(서울, 경기…) (코드 순) */
+    public Map<String, String> sidoOptions() {
+        Map<String, String> result = new java.util.TreeMap<>();
+        sidoNameByCode.forEach((code, name) -> result.put(code, stem(name, SIDO_SUFFIXES)));
+        return result;
+    }
+
     /** 사람이 읽는 지역 이름 (예: "서울특별시 종로구"). 코드를 모르면 빈 문자열 */
     public String displayName(String sidoCode, String sigunguCode) {
         if (sidoCode == null) return "";
         String sido = sidoNameByCode.getOrDefault(sidoCode, "");
+        String sigungu = sigunguCode == null ? "" : sigunguNameByCode.getOrDefault(sidoCode, Map.of()).getOrDefault(sigunguCode, "");
+        return (sido + " " + sigungu).trim();
+    }
+
+    /**
+     * 소스가 같은 주소를 두 번 붙여 주는 경우를 한 번으로 줄인다. "서울특별시 종로구 평창30길 40 서울 종로구 평창30길 40" →
+     * "서울특별시 종로구 평창30길 40". 뒤쪽이 시도 이름으로 시작하고 그 나머지가 앞쪽의 끝과 같을 때만 줄인다.
+     */
+    public String cleanAddress(String address) {
+        List<String> tokens = tokens(address);
+        for (int i = 2; i < tokens.size() - 1; i++) {
+            if (findSido(tokens.get(i)) == null) continue;
+            String head = String.join(" ", tokens.subList(0, i));
+            String rest = String.join(" ", tokens.subList(i + 1, tokens.size()));
+            if (head.endsWith(rest)) return head;
+        }
+        return address;
+    }
+
+    /** 화면에 보일 짧은 지역 이름 (예: "서울 강남구", "경기"). 코드를 모르면 빈 문자열 */
+    public String shortName(String sidoCode, String sigunguCode) {
+        if (sidoCode == null || !sidoNameByCode.containsKey(sidoCode)) return "";
+        String sido = stem(sidoNameByCode.get(sidoCode), SIDO_SUFFIXES);
         String sigungu = sigunguCode == null ? "" : sigunguNameByCode.getOrDefault(sidoCode, Map.of()).getOrDefault(sigunguCode, "");
         return (sido + " " + sigungu).trim();
     }
