@@ -43,7 +43,8 @@ public class EventQueryRepositoryImpl implements EventQueryRepository {
         };
         List<Event> content = query.selectFrom(event)
                 .where(where)
-                .orderBy(soonest(today), withoutImageLast(), event.endDate.asc().nullsLast(), event.title.asc())
+                .orderBy(soonest(today), endsTodayLast(today), withoutImageLast(), event.sourceCount.desc(),
+                        event.endDate.asc().nullsLast(), event.title.asc())
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .fetch();
@@ -59,7 +60,12 @@ public class EventQueryRepositoryImpl implements EventQueryRepository {
         return new OrderSpecifier<>(Order.ASC, effectiveStart);
     }
 
-    /** 같은 날 시작하는 것 중에는 포스터가 있는 행사를 앞에 둔다 (화면이 더 보기 좋다) */
+    /** 오늘 끝나는 행사는 같은 시작일 안에서 뒤로 (지금 가려는 사람에게는 오늘 끝나는 것보다 더 많이 남은 것이 쓸모 있다) */
+    private static OrderSpecifier<Integer> endsTodayLast(LocalDate today) {
+        return new CaseBuilder().when(event.endDate.loe(today)).then(1).otherwise(0).asc();
+    }
+
+    /** 같은 날 시작하는 것 중에는 포스터가 있는 행사를 앞에 둔다 (화면이 더 보기 좋다). 그다음은 여러 소스에 올라 있는(더 알려진) 행사 순 */
     private static OrderSpecifier<Integer> withoutImageLast() {
         return new CaseBuilder().when(event.imageUrl.isNull()).then(1).otherwise(0).asc();
     }

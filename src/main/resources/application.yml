@@ -41,13 +41,26 @@ spring:
   ai:
     # 쓰는 것은 임베딩(OpenAI)뿐이다. 나머지 OpenAI 기능은 꺼서 키가 없어도 앱이 뜨게 한다
     model:
-      chat: none
+      # 채팅은 Gemini, 임베딩은 OpenAI. 두 스타터가 모두 있어서 쓸 쪽을 정한다
+      chat: google-genai
       embedding: openai
       image: none
       moderation: none
       audio:
         speech: none
         transcription: none
+    google:
+      genai:
+        # 키가 비어 있으면 Spring AI 가 시작 단계에서 실패할 수 있어 자리표시 값을 둔다. 실제 사용 가능 여부는 tshow.recommend 에서 판단한다
+        api-key: ${GEMINI_API_KEY:not-configured}
+        chat:
+          model: ${GEMINI_MODEL:gemini-3.1-flash-lite-preview}
+          # 생각하는 시간을 줄여 응답을 빠르게 한다 (MINIMAL < LOW < MEDIUM < HIGH).
+          # 주의: thinking-level: MINIMAL 과 thinking-budget: 0 을 함께 쓰면 400 오류가 난다
+          thinking-level: ${GEMINI_THINKING_LEVEL:MINIMAL}
+          temperature: 0.3
+          options:
+            temperature: 0.3
     openai:
       # 키가 비어 있으면 Spring AI 가 시작 단계에서 실패할 수 있어 자리표시 값을 둔다. 실제 사용 가능 여부는 tshow.index 에서 판단한다
       api-key: ${OPENAI_API_KEY:not-configured}
@@ -176,8 +189,24 @@ tshow:
     # 검색어는 이 글자 수까지만 쓴다 (임베딩 호출 비용과 남용 방지)
     max-query-length: 100
     default-radius-km: 5
+    # 검색창 아래에 보여 줄 검색어 예시
+    examples:
+      - 이번 주말 서울 무료 전시
+      - 아이와 갈 만한 공연
+      - 비 오는 날 실내 데이트
+      - 부산에서 열리는 축제
+      - 클래식 연주회
     # 출처 표기에 쓸 이름. 각 서비스의 이용 조건에 맞는 표기를 쓴다
     source-names:
       KOPIS: 공연예술통합전산망(KOPIS)
       CULTURE: 한국문화정보원
       TOURAPI: 한국관광공사
+
+  # AI 추천 (RecommendProperties 설명 참고). 버튼을 눌렀을 때만 Gemini 를 부른다
+  recommend:
+    candidates: 20
+    max-picks: 8
+    timeout-seconds: 20
+    # 한 사람(IP)이 하루에 쓸 수 있는 횟수와, 서비스 전체가 하루에 쓸 수 있는 횟수 (비용 상한)
+    daily-limit-per-client: 10
+    daily-limit-total: 300

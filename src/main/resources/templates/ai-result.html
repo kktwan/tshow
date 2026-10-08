@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- AI 추천 영역 조각. /recommend 가 이 조각만 돌려주고, 스크립트가 검색 화면에 끼워 넣는다 -->
+<section th:fragment="result" class="ai-panel" th:classappend="${ai.ai} ? 'is-ai' : 'is-notice'">
+    <div class="ai-panel-inner">
+        <header class="ai-panel-head">
+            <span class="ai-badge"><svg class="i"><use href="#sparkles"/></svg>AI 추천</span>
+            <button type="button" class="ai-close" data-ai-close aria-label="AI 추천 닫기"><svg class="i"><use href="#x"/></svg></button>
+        </header>
+
+        <p class="ai-summary" th:if="${ai.summary != null}" th:text="${ai.summary}">요약</p>
+        <p class="ai-notice" th:if="${ai.message != null}">
+            <svg class="i"><use href="#info"/></svg><span th:text="${ai.message}">안내</span>
+        </p>
+
+        <ol class="ai-list" th:if="${!ai.picks.isEmpty()}">
+            <li th:each="p, st : ${ai.picks}">
+                <a class="ai-item" th:href="@{/events/{id}(id=${p.card.id})}">
+                    <span class="ai-rank" th:if="${ai.ai}" th:text="${st.count}">1</span>
+                    <span class="ai-thumb">
+                        <img th:if="${p.card.imageUrl != null}" th:src="${p.card.imageUrl}" th:alt="${p.card.title}" loading="lazy"
+                             referrerpolicy="no-referrer" onerror="this.remove()">
+                    </span>
+                    <span class="ai-body">
+                        <span class="ai-item-kicker" th:text="${p.card.categoryName}">연극</span>
+                        <strong class="ai-item-title" th:text="${p.card.title}">제목</strong>
+                        <span class="ai-item-meta" th:text="${p.card.period} + ' · ' + ${p.card.venueName != null ? p.card.venueName : p.card.regionName}">기간 · 장소</span>
+                        <span class="ai-reason" th:if="${p.reason != null and p.reason != ''}" th:text="${p.reason}">이유</span>
+                    </span>
+                    <svg class="i ai-go"><use href="#arrow-up-right"/></svg>
+                </a>
+            </li>
+        </ol>
+
+        <p class="ai-foot" th:if="${ai.ai}">AI가 후보 행사의 정보를 바탕으로 쓴 설명이라 틀릴 수 있어요. 예매하기 전에 상세 정보를 꼭 확인해 주세요.</p>
+    </div>
+</section>
+</body>
+</html>

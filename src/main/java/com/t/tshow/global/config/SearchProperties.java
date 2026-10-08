@@ -17,6 +17,7 @@ import java.util.Map;
  * @param defaultRadiusKm    "내 주변" 기본 반경(km)
  * @param radiusOptionsKm    화면에서 고를 수 있는 반경(km)
  * @param quickDates         화면에 버튼으로 보일 날짜 규칙 (사전의 규칙 이름)
+ * @param examples           검색창 아래에 보여 줄 검색어 예시 (눌러 보면 바로 검색된다)
  * @param zone               "오늘", "이번 주말" 같은 날짜 표현의 기준 시간대
  * @param sourceNames        출처 표기에 쓸 소스 이름 (SourceType 이름 → 화면에 보일 이름)
  */
@@ -30,6 +31,7 @@ public record SearchProperties(
         @DefaultValue("5") int defaultRadiusKm,
         @DefaultValue({"1", "3", "5", "10"}) List<Integer> radiusOptionsKm,
         @DefaultValue({"today", "tomorrow", "weekend", "this-month"}) List<String> quickDates,
+        @DefaultValue List<String> examples,
         @DefaultValue("Asia/Seoul") String zone,
         @DefaultValue Map<String, String> sourceNames) {
 }

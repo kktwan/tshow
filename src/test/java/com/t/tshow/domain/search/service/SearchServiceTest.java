@@ -73,7 +73,7 @@ class SearchServiceTest {
     void setUp() {
         CategoryResolver categories = new CategoryResolver();
         RegionResolver regions = new RegionResolver();
-        SearchProperties properties = new SearchProperties(60, 0.3, 12, 48, 100, 5, List.of(1, 3, 5, 10), List.of("today"),
+        SearchProperties properties = new SearchProperties(60, 0.3, 12, 48, 100, 5, List.of(1, 3, 5, 10), List.of("today"), List.of(),
                 "Asia/Seoul", Map.of());
         SearchDictionary dictionary = new SearchDictionary(categories);
         Clock clock = Clock.fixed(TODAY.atTime(10, 0).atZone(ZoneId.of("Asia/Seoul")).toInstant(), ZoneId.of("Asia/Seoul"));
@@ -175,7 +175,7 @@ class SearchServiceTest {
         };
         CategoryResolver categories = new CategoryResolver();
         RegionResolver regions = new RegionResolver();
-        SearchProperties properties = new SearchProperties(60, 0.3, 12, 48, 100, 5, List.of(1), List.of("today"), "Asia/Seoul", Map.of());
+        SearchProperties properties = new SearchProperties(60, 0.3, 12, 48, 100, 5, List.of(1), List.of("today"), List.of(), "Asia/Seoul", Map.of());
         SearchDictionary dictionary = new SearchDictionary(categories);
         SearchService fallback = new SearchService(new QueryAnalyzer(dictionary, regions, properties), dictionary, broken, embedder,
                 events, new EventPresenter(), categories, regions, properties, Clock.fixed(TODAY.atStartOfDay(ZoneId.of("Asia/Seoul")).toInstant(), ZoneId.of("Asia/Seoul")));

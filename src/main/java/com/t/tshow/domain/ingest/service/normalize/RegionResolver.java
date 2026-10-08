@@ -48,6 +48,8 @@ public class RegionResolver {
     private final Map<String, Map<String, String>> sigunguByNameBySido = new HashMap<>();
     private final Map<String, String> sidoByAlias = new HashMap<>();
     private final Set<String> nonDomestic = new HashSet<>();
+    /** 시도 코드 → 화면에 보일 짧은 이름 (이름 규칙으로 줄이면 어색한 것만) */
+    private final Map<String, String> shortNameOverrides = new HashMap<>();
     /** 시도 코드 → (소스가 주는 옛 시군구 이름 → 현재 이름) */
     private final Map<String, Map<String, String>> sigunguRenames = new HashMap<>();
 
@@ -97,6 +99,10 @@ public class RegionResolver {
             Map<String, Object> root = new Yaml().load(in);
             ((Map<Object, Object>) root.get("sido")).forEach((k, v) -> sidoByAlias.put(String.valueOf(k), String.valueOf(v)));
             ((List<Object>) root.get("non-domestic")).forEach(v -> nonDomestic.add(String.valueOf(v)));
+            Object shortNames = root.get("short-names");
+            if (shortNames instanceof Map<?, ?> names) {
+                names.forEach((code, name) -> shortNameOverrides.put(String.valueOf(code), String.valueOf(name)));
+            }
             Object renames = root.get("sigungu");
             if (renames instanceof Map<?, ?> bySido) {
                 bySido.forEach((sido, names) -> {
@@ -217,7 +223,7 @@ public class RegionResolver {
     /** 시도 목록: 코드 → 짧은 이름(서울, 경기…) (코드 순) */
     public Map<String, String> sidoOptions() {
         Map<String, String> result = new java.util.TreeMap<>();
-        sidoNameByCode.forEach((code, name) -> result.put(code, stem(name, SIDO_SUFFIXES)));
+        sidoNameByCode.forEach((code, name) -> result.put(code, sidoShortName(code)));
         return result;
     }
 
@@ -244,10 +250,15 @@ public class RegionResolver {
         return address;
     }
 
+    private String sidoShortName(String sidoCode) {
+        String override = shortNameOverrides.get(sidoCode);
+        return override != null ? override : stem(sidoNameByCode.get(sidoCode), SIDO_SUFFIXES);
+    }
+
     /** 화면에 보일 짧은 지역 이름 (예: "서울 강남구", "경기"). 코드를 모르면 빈 문자열 */
     public String shortName(String sidoCode, String sigunguCode) {
         if (sidoCode == null || !sidoNameByCode.containsKey(sidoCode)) return "";
-        String sido = stem(sidoNameByCode.get(sidoCode), SIDO_SUFFIXES);
+        String sido = sidoShortName(sidoCode);
         String sigungu = sigunguCode == null ? "" : sigunguNameByCode.getOrDefault(sidoCode, Map.of()).getOrDefault(sigunguCode, "");
         return (sido + " " + sigungu).trim();
     }

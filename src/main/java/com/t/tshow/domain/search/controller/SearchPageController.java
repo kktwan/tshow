@@ -2,6 +2,7 @@ package com.t.tshow.domain.search.controller;
 
 import com.t.tshow.domain.ingest.service.normalize.CategoryResolver;
 import com.t.tshow.domain.ingest.service.normalize.RegionResolver;
+import com.t.tshow.domain.recommend.service.RecommendService;
 import com.t.tshow.domain.search.dto.ChipView;
 import com.t.tshow.domain.search.dto.SearchRequest;
 import com.t.tshow.domain.search.dto.SearchResponse;
@@ -28,14 +29,16 @@ public class SearchPageController {
     private final CategoryResolver categories;
     private final RegionResolver regions;
     private final SearchProperties properties;
+    private final RecommendService recommend;
 
     public SearchPageController(SearchService search, SearchDictionary dictionary, CategoryResolver categories,
-                                RegionResolver regions, SearchProperties properties) {
+                                RegionResolver regions, SearchProperties properties, RecommendService recommend) {
         this.search = search;
         this.dictionary = dictionary;
         this.categories = categories;
         this.regions = regions;
         this.properties = properties;
+        this.recommend = recommend;
     }
 
     @GetMapping("/")
@@ -48,6 +51,10 @@ public class SearchPageController {
         model.addAttribute("pageTitle", links.any()
                 ? (result.query().isBlank() ? "검색 결과" : result.query()) + " · tshow" : "tshow · 공연 전시 축제 찾기");
         model.addAttribute("hidden", links.hiddenFields());
+        model.addAttribute("examples", properties.examples().stream()
+                .map(example -> new ChipView(example, new SearchLinks(new SearchRequest(null, null, null, null, null, null, null, null,
+                        null, null, null, null, null)).with("q", example), false)).toList());
+        model.addAttribute("aiAvailable", recommend.available());
         model.addAttribute("kindTabs", kindTabs(request, links));
         model.addAttribute("categoryChips", categoryChips(request, links));
         model.addAttribute("whenChips", whenChips(request, links));

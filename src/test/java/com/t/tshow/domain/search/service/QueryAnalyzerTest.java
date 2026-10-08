@@ -21,7 +21,7 @@ class QueryAnalyzerTest {
     private final RegionResolver regions = new RegionResolver();
     private final CategoryResolver categories = new CategoryResolver();
     private final SearchProperties properties = new SearchProperties(60, 0.3, 12, 48, 100, 5, List.of(1, 3, 5, 10),
-            List.of("today"), "Asia/Seoul", Map.of());
+            List.of("today"), List.of(), "Asia/Seoul", Map.of());
     private final QueryAnalyzer analyzer = new QueryAnalyzer(new SearchDictionary(categories), regions, properties);
 
     private static SearchRequest request(String q) {

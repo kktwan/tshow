@@ -13,7 +13,8 @@
 | 벡터 색인 (Qdrant `tshow-events`) | 구현됨, 병합 뒤 자동 실행 | [docs/index-design.md](docs/index-design.md) 2절 |
 | 검색 서비스 · API · 화면 | 구현됨 | [docs/search-design.md](docs/search-design.md) |
 | 배포 (Oracle A1 + Jenkins Blue-Green, nginx 호출 제한) | 파일·서버 설정 있음 | [deploy/README.md](deploy/README.md) |
-| AI 추천, 박스오피스 수집, 알림 | 아직 없음 | |
+| AI 추천 (Gemini, 버튼을 눌렀을 때만) | 구현됨 (서버에는 `GEMINI_API_KEY` 설정 필요) | [docs/search-design.md](docs/search-design.md) 6절 |
+| 박스오피스 수집, 알림 | 아직 없음 | |
 
 ## 로컬 실행
 
@@ -21,7 +22,7 @@
    ```bash
    docker compose up -d db qdrant
    ```
-2. `.env.example`을 복사해 `.env`를 만들고 인증키를 채운다 (`.env`는 커밋하지 않는다). 키: `KOPIS_API_KEY`, `TOURAPI_API_KEY`, `CULTURE_API_KEY`, 임베딩용 `OPENAI_API_KEY`.
+2. `.env.example`을 복사해 `.env`를 만들고 인증키를 채운다 (`.env`는 커밋하지 않는다). 키: `KOPIS_API_KEY`, `TOURAPI_API_KEY`, `CULTURE_API_KEY`, 임베딩용 `OPENAI_API_KEY`, AI 추천용 `GEMINI_API_KEY`(없으면 AI 추천 버튼만 숨겨진다).
 3. 빌드·실행
    ```bash
    ./gradlew.bat build
@@ -86,14 +87,14 @@ tcine에서 겪은 문제(시리즈 장르 체계 불일치, 후처리 필터로
    ├─ infra                 외부 연동 (도메인은 이 안을 모른다)
    │  ├─ http               ApiClient(공통 호출 창구), ApiRequest(주소·파라미터·키 인코딩), RestApiClient(간격·재시도), ApiPolicy
    │  ├─ source/{kopis,culture,tourapi}   AbstractEventSource(공통 뼈대) + 소스별 어댑터
-   │  └─ qdrant, embedding  VectorIndex / Embedder 구현
+   │  └─ qdrant, embedding, ai   VectorIndex / Embedder / AiCurator(Gemini) 구현
    ├─ domain
    │  ├─ ingest             수집·정규화: entity(SourceRecord, IngestRun), dto(RawEvent…), repository, service(+normalize)
    │  ├─ event              병합 결과: entity(Event, EventSourceLink), dto, repository(JPA + QueryDSL), service(+merge), controller(/events/{id}, /api/events/{id})
    │  ├─ index              벡터 색인: port(VectorIndex, Embedder, IndexStateStore), service, repository(JpaIndexStateStore)
-   │  └─ search             검색: dto, service(QueryAnalyzer, SearchService, SearchDictionary), controller(화면 /, API /api/search)
+   │  ├─ search             검색: dto, service(QueryAnalyzer, SearchService, SearchDictionary), controller(화면 /, API /api/search)
+   │  └─ recommend          AI 추천: port(AiCurator), dto, service(RecommendService, 한도·캐시), controller(/recommend, /api/recommend)
    ├─ batch                 수집 → 병합 → 색인 파이프라인(service)과 cron(scheduler)
-   └─ (예정) recommend      AI 추천은 domain 아래에 같은 계층 구조로 추가
    ```
    - 저장소는 **JPA(Hibernate) + Spring Data**, 조건이 바뀌는 조회는 **QueryDSL**(`EventQueryRepository`). 스키마는 Flyway SQL로만 바꾸고 Hibernate는 `ddl-auto: validate`로 맞는지만 확인한다.
    - REST 컨트롤러는 항상 `ApiResponse`로 응답하고, 오류는 `BusinessException(ErrorCode)`를 던져 `GlobalExceptionHandler`가 상태 코드와 함께 `ApiResponse.error`로 바꾼다.
@@ -114,14 +115,14 @@ tcine에서 겪은 문제(시리즈 장르 체계 불일치, 후처리 필터로
 ## 미정 결정 (사용자 확인 필요)
 
 - 분위기·대상(아이·연인·가족·반려동물) 태그를 규칙만으로 만들지, AI로 한 번 태깅할지 (추천: 샘플 확인 후 AI 태깅)
-- AI 추천(Gemini)의 범위와 시점, 키워드 검색을 결합한 하이브리드(RRF) 도입 여부
+- 키워드 검색을 결합한 하이브리드(RRF) 도입 여부, AI 추천 품질 평가 방식(호출 비용·비결정성)
 
 ## 남은 일
 
 - 평가 세트 확대와 점수 하한 재조정 (현재 0.30, 여유가 크지 않다)
-- 시군구 선택 화면, 박스오피스 수집, AI 추천, 관심 조건 알림
+- 시군구 선택 화면, 박스오피스 수집, 관심 조건 알림, AI 추천 품질 점검
 - KOPIS 이용 조건(보관·이미지) 재확인, 재수집 주기를 시간 기준으로 개선
 
 ## 기술 스택
 
-Spring Boot 4.1 (Java 21), PostgreSQL 17, Spring Data JPA + QueryDSL, Flyway, Qdrant(OpenAI 임베딩 `text-embedding-3-small` 768차원), Thymeleaf. AI 추천(Gemini)은 이후 추가. 배포는 Oracle Cloud A1 + Jenkins Blue-Green, 도메인은 DuckDNS.
+Spring Boot 4.1 (Java 21), PostgreSQL 17, Spring Data JPA + QueryDSL, Flyway, Qdrant(OpenAI 임베딩 `text-embedding-3-small` 768차원), Thymeleaf, AI 추천은 Google Gemini(`gemini-3.1-flash-lite-preview`, Spring AI). 배포는 Oracle Cloud A1 + Jenkins Blue-Green, 도메인은 DuckDNS.
