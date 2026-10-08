@@ -17,6 +17,8 @@ import java.util.List;
  * @param sigunguCode    소스가 준 시군구 코드
  * @param imageLicense   이미지 이용 조건 (TourAPI 저작권 유형 등, 모르면 null)
  * @param infoUrl        소스가 주는 상세·홈페이지 링크 (예매 링크와 구분, 없으면 null)
+ * @param placeUrl       장소(공연장·전시장) 홈페이지 (없으면 null)
+ * @param phone          문의 전화 (이름이 함께 올 수도 있다, 없으면 null)
  * @param raw            원본 응답 (문제 추적용)
  */
 public record RawEvent(
@@ -44,6 +46,8 @@ public record RawEvent(
         String imageUrl,
         String imageLicense,
         String infoUrl,
+        String placeUrl,
+        String phone,
         List<TicketLink> ticketLinks,
         OffsetDateTime sourceUpdatedAt,
         String raw) {

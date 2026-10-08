@@ -4,7 +4,9 @@ import com.t.tshow.domain.event.entity.Event;
 import com.t.tshow.domain.ingest.entity.SourceRecord;
 import com.t.tshow.global.config.MergeProperties;
 import com.t.tshow.global.util.Hashes;
+import com.t.tshow.global.util.Html;
 import com.t.tshow.global.util.Texts;
+import com.t.tshow.global.util.Urls;
 import org.springframework.stereotype.Component;
 
 import java.util.Comparator;
@@ -43,7 +45,7 @@ public class EventMerger {
 
         SourceRecord anyTitle = title != null ? title : members.get(0);
         SourceRecord anyCategory = category != null ? category : members.get(0);
-        String description = value(members, "description", SourceRecord::getDescription);
+        String description = text(value(members, "description", SourceRecord::getDescription));
 
         String sigungu = null;
         if (region != null) {
@@ -64,18 +66,28 @@ public class EventMerger {
                 .address(address == null ? null : address.getAddress())
                 .sidoCode(region == null ? null : region.getSidoCode()).sigunguCode(sigungu)
                 .lat(location == null ? null : location.getLat()).lon(location == null ? null : location.getLon())
-                .priceType(price == null ? "UNKNOWN" : price.getPriceType()).priceText(price == null ? null : price.getPriceText())
-                .ageText(value(members, "age", SourceRecord::getAgeText))
-                .runtimeText(value(members, "runtime", SourceRecord::getRuntimeText))
-                .scheduleText(value(members, "schedule", SourceRecord::getScheduleText))
-                .castText(value(members, "cast", SourceRecord::getCastText))
-                .hostText(value(members, "host", SourceRecord::getHostText))
+                .priceType(price == null ? "UNKNOWN" : price.getPriceType()).priceText(price == null ? null : text(price.getPriceText()))
+                .ageText(text(value(members, "age", SourceRecord::getAgeText)))
+                .runtimeText(text(value(members, "runtime", SourceRecord::getRuntimeText)))
+                .scheduleText(text(value(members, "schedule", SourceRecord::getScheduleText)))
+                .castText(text(value(members, "cast", SourceRecord::getCastText)))
+                .hostText(text(value(members, "host", SourceRecord::getHostText)))
                 .imageUrl(image == null ? null : image.getImageUrl()).imageLicense(image == null ? null : image.getImageLicense())
-                .infoUrl(value(members, "info-url", SourceRecord::getInfoUrl))
+                .infoUrl(Urls.safeHttp(value(members, "info-url", SourceRecord::getInfoUrl)))
+                .placeUrl(Urls.safeHttp(value(members, "place-url", SourceRecord::getPlaceUrl)))
+                .phone(text(value(members, "phone", SourceRecord::getPhone)))
                 .ticketLinksJson(value(members, "ticket-links", SourceRecord::getTicketLinksJson))
                 .sourceCount(members.size()).hasDescription(description != null)
                 .build();
         return unhashed.toBuilder().dataHash(hashOf(unhashed)).build();
+    }
+
+    /**
+     * 본문류 글을 화면에 보일 보통 글로 다시 정리한다. 수집할 때 이미 정리하지만, 정리 규칙이 늘기 전에 저장된 레코드나
+     * 소스를 다시 받기 전의 레코드도 병합 결과에서는 깨끗하게 하려고 한 번 더 적용한다(같은 값에 다시 적용해도 같다).
+     */
+    private static String text(String value) {
+        return Texts.blankToNull(Html.toPlainText(value));
     }
 
     /** 필드의 소스 우선순위 순서로 정렬한 뒤 조건을 만족하는 첫 레코드. 없으면 null */
@@ -99,13 +111,17 @@ public class EventMerger {
 
     /** 병합 결과의 내용 필드를 이어 붙여 해시한다. 바뀐 행사만 갱신하고 색인 변경분을 가리는 데 쓴다 */
     private static String hashOf(Event e) {
-        return Hashes.sha256(String.join("\u0001", Stream.of(
+        String base = String.join("\u0001", Stream.of(
                         e.getKind(), e.getCategory(), e.getTitle(), e.getDescription(), str(e.getStartDate()), str(e.getEndDate()),
                         e.getVenueName(), e.getAddress(), e.getSidoCode(), e.getSigunguCode(), str(e.getLat()), str(e.getLon()),
                         e.getPriceType(), e.getPriceText(), e.getAgeText(), e.getRuntimeText(), e.getScheduleText(), e.getCastText(),
                         e.getHostText(), e.getImageUrl(), e.getImageLicense(), e.getInfoUrl(), e.getTicketLinksJson(),
                         str(e.getSourceCount()))
-                .map(Texts::nullToEmpty).toList()));
+                .map(Texts::nullToEmpty).toList());
+        // 나중에 추가한 값은 있을 때만 해시에 넣는다 (값이 없는 기존 행사의 해시가 바뀌어 전부 갱신되지 않게)
+        String extra = (e.getPlaceUrl() == null ? "" : "\u0002place=" + e.getPlaceUrl())
+                + (e.getPhone() == null ? "" : "\u0002phone=" + e.getPhone());
+        return Hashes.sha256(base + extra);
     }
 
     private static String str(Object o) {

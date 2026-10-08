@@ -18,7 +18,7 @@
             <li th:each="p, st : ${ai.picks}">
                 <a class="ai-item" th:href="@{/events/{id}(id=${p.card.id})}">
                     <span class="ai-rank" th:if="${ai.ai}" th:text="${st.count}">1</span>
-                    <span class="ai-thumb">
+                    <span class="ai-thumb" th:classappend="${p.card.imageProtected} ? 'is-protected'">
                         <img th:if="${p.card.imageUrl != null}" th:src="${p.card.imageUrl}" th:alt="${p.card.title}" loading="lazy"
                              referrerpolicy="no-referrer" onerror="this.remove()">
                     </span>

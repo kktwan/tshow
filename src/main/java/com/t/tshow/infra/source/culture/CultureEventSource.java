@@ -71,7 +71,7 @@ public class CultureEventSource extends AbstractEventSource {
                 Texts.firstOf(Xml.text(d, "sigungu"), Xml.text(listItem, "sigungu")), null, null,
                 firstNumber(d, listItem, "gpsY"), firstNumber(d, listItem, "gpsX"),
                 Xml.text(d, "price"), null, null, null, null, null,
-                Texts.firstOf(Xml.text(d, "imgUrl"), thumbnail), null, Xml.text(d, "url"), List.of(), null, detailXml);
+                Texts.firstOf(Xml.text(d, "imgUrl"), thumbnail), null, Xml.text(d, "url"), Xml.text(d, "placeUrl"), Xml.text(d, "phone"), List.of(), null, detailXml);
     }
 
     private static Double firstNumber(Element primary, Element fallback, String tag) {

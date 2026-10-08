@@ -6,7 +6,7 @@
 <header th:replace="~{fragments :: header}"></header>
 
 <main class="detail-page">
-    <div class="detail-backdrop" aria-hidden="true">
+    <div class="detail-backdrop" aria-hidden="true" th:unless="${event.imageProtected}">
         <img th:if="${event.imageUrl != null}" th:src="${event.imageUrl}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">
     </div>
 
@@ -17,7 +17,7 @@
         </a>
 
         <article class="detail">
-            <div class="detail-cover">
+            <div class="detail-cover" th:classappend="${event.imageProtected} ? 'is-protected'">
                 <img th:if="${event.imageUrl != null}" th:src="${event.imageUrl}" th:alt="${event.title}"
                      referrerpolicy="no-referrer" onerror="this.remove()">
                 <span class="detail-cover-fallback" aria-hidden="true"
@@ -51,6 +51,9 @@
                             <a class="link" th:if="${mapUrl != null}" th:href="${mapUrl}" target="_blank" rel="noopener noreferrer">
                                 지도에서 보기<svg class="i"><use href="#arrow-up-right"/></svg>
                             </a>
+                            <a class="link link-second" th:if="${event.placeUrl != null}" th:href="${event.placeUrl}" target="_blank" rel="noopener noreferrer">
+                                장소 홈페이지<svg class="i"><use href="#arrow-up-right"/></svg>
+                            </a>
                         </dd>
                     </div>
                     <div class="prop" th:if="${event.priceText != null}">
@@ -68,6 +71,13 @@
                     <div class="prop" th:if="${event.castText != null}">
                         <dt><svg class="i"><use href="#user"/></svg>출연</dt>
                         <dd class="prewrap" th:text="${event.castText}">출연진</dd>
+                    </div>
+                    <div class="prop" th:if="${event.phone != null}">
+                        <dt><svg class="i"><use href="#phone"/></svg>문의</dt>
+                        <dd>
+                            <a th:if="${event.telHref() != null}" class="tel" th:href="${event.telHref()}" th:text="${event.phone}">02-123-4567</a>
+                            <span th:if="${event.telHref() == null}" th:text="${event.phone}">문의</span>
+                        </dd>
                     </div>
                     <div class="prop" th:if="${event.hostText != null}">
                         <dt><svg class="i"><use href="#building"/></svg>주최·제작</dt>
@@ -91,6 +101,7 @@
             <p class="prewrap" th:text="${event.description}">소개</p>
         </section>
 
+        <p class="source-note" th:if="${event.imageCredit != null}" th:text="${event.imageCredit}">이미지 이용 조건</p>
         <p class="source-note" th:if="${!event.sources.isEmpty()}">
             출처 · <span th:text="${#strings.listJoin(event.sources, ', ')}">공연예술통합전산망(KOPIS)</span>
         </p>

@@ -14,6 +14,16 @@ import java.util.UUID;
 /** event 저장소. 동적 조건 조회는 {@link EventQueryRepository}(QueryDSL)가 맡는다 */
 public interface EventRepository extends JpaRepository<Event, UUID>, EventQueryRepository {
 
+    /** 검색엔진 사이트맵용: 논리삭제되지 않은 행사의 id 와 마지막 수정 시각 */
+    @Query("select e.id as id, e.updatedAt as updatedAt from Event e where e.archivedAt is null order by e.updatedAt desc")
+    List<SitemapRow> findSitemapRows(org.springframework.data.domain.Pageable limit);
+
+    interface SitemapRow {
+        UUID getId();
+
+        Instant getUpdatedAt();
+    }
+
     /** 보관 기간이 지나지 않은(논리삭제되지 않은) 행사 */
     List<Event> findByArchivedAtIsNull();
 

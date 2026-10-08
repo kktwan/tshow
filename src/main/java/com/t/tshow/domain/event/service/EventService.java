@@ -61,7 +61,14 @@ public class EventService {
                 schedule.period(), schedule.status(), schedule.tone(), e.getVenueName(), e.getAddress(),
                 regions.shortName(e.getSidoCode(), e.getSigunguCode()), e.getLat(), e.getLon(), e.getPriceType(),
                 e.getPriceText(), e.getAgeText(), e.getRuntimeText(), e.getScheduleText(), e.getCastText(), e.getHostText(),
-                e.getImageUrl(), e.getInfoUrl(), ticketLinks(e), sources);
+                e.getImageUrl(), imageCredit(e), ImageLicense.noModify(e.getImageLicense()), e.getInfoUrl(), e.getPlaceUrl(),
+                e.getPhone(), ticketLinks(e), sources);
+    }
+
+    /** 이미지에 공공누리 유형이 있으면 화면에 보일 이용 조건 글 */
+    private static String imageCredit(Event e) {
+        ImageLicense license = ImageLicense.of(e.getImageLicense());
+        return license == null ? null : "이미지 이용 조건 · " + license.label();
     }
 
     private String sourceName(SourceType type) {

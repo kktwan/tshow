@@ -252,4 +252,48 @@ class MergeTest {
         SourceRecord changed = with(a, "새 설명", null, "UNKNOWN", null);
         assertNotEquals(e1.getDataHash(), planner.plan(List.of(changed), Map.of(), UUID::randomUUID).events().get(0).event().getDataHash());
     }
+
+    @Test
+    void 저장된_레코드의_소개글에_HTML_이_남아_있어도_병합_결과는_깨끗하다() {
+        // 정리 규칙이 생기기 전에 저장됐거나 아직 다시 받지 못한 레코드
+        SourceRecord dirty = with(rec("CULTURE", "c1", "GRACE", D1, D1, "갤러리바톤", 37.5, 127.0),
+                "<!-- wp:paragraph -->\n<p>재개관전 &lt;GRACE&gt; 를 연다.</p>\n<!-- /wp:paragraph -->", "&lt;무료&gt;", "FREE", null);
+        Event e = planner.plan(List.of(dirty), Map.of(), UUID::randomUUID).events().get(0).event();
+
+        assertEquals("재개관전 <GRACE> 를 연다.", e.getDescription());
+        assertTrue(e.isHasDescription());
+        assertEquals("<무료>", e.getPriceText());
+
+        // 태그뿐이라 글이 남지 않으면 소개가 없는 것으로 본다
+        SourceRecord empty = with(rec("CULTURE", "c2", "빈 소개", D1, D1, "갤러리", 37.5, 127.0), "<!-- wp:image --><figure></figure>", null, "UNKNOWN", null);
+        Event none = planner.plan(List.of(empty), Map.of(), UUID::randomUUID).events().get(0).event();
+        assertNull(none.getDescription());
+        assertFalse(none.isHasDescription());
+    }
+
+    @Test
+    void 문의_전화와_장소_홈페이지를_우선순위대로_가져오고_깨진_링크는_고친다() {
+        SourceRecord kopis = rec("KOPIS", "k1", "어린왕자", D1, D1, "시흥아트센터", 37.37, 126.72);
+        SourceRecord culture = rec("CULTURE", "c1", "어린왕자", D1, D1, "시흥아트센터", 37.37, 126.72).toBuilder()
+                .phone("시흥아트센터 031-310-2000").placeUrl("http://www.shac.or.kr")
+                .infoUrl("https://x.kr/rsv?b_id=a&amp;p_idx=1").build();
+
+        Event e = planner.plan(List.of(kopis, culture), Map.of(), UUID::randomUUID).events().get(0).event();
+
+        assertEquals("시흥아트센터 031-310-2000", e.getPhone());
+        assertEquals("http://www.shac.or.kr", e.getPlaceUrl());
+        assertEquals("https://x.kr/rsv?b_id=a&p_idx=1", e.getInfoUrl());
+    }
+
+    @Test
+    void 새_값이_없는_행사의_해시는_값을_더하기_전과_같고_값이_생기면_달라진다() {
+        SourceRecord plain = rec("KOPIS", "k1", "어린왕자", D1, D1, "시흥아트센터", 37.37, 126.72);
+        String before = planner.plan(List.of(plain), Map.of(), UUID::randomUUID).events().get(0).event().getDataHash();
+        // 같은 입력은 같은 해시 (필드를 추가하기 전에 만든 행사가 전부 바뀐 것으로 판정되지 않는다)
+        assertEquals(before, planner.plan(List.of(plain), Map.of(), UUID::randomUUID).events().get(0).event().getDataHash());
+
+        String after = planner.plan(List.of(plain.toBuilder().phone("031-310-2000").build()), Map.of(), UUID::randomUUID)
+                .events().get(0).event().getDataHash();
+        assertNotEquals(before, after);
+    }
 }

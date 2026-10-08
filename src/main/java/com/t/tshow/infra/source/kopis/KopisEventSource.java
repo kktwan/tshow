@@ -90,7 +90,7 @@ public class KopisEventSource extends AbstractEventSource {
                 facility == null ? null : facility.lat(), facility == null ? null : facility.lon(),
                 Xml.text(d, "pcseguidance"), Xml.text(d, "prfage"), Xml.text(d, "prfruntime"), Xml.text(d, "dtguidance"),
                 Xml.text(d, "prfcast"), Xml.text(d, "entrpsnm"),
-                Xml.text(d, "poster"), null, null, ticketLinks(d), updatedAt(Xml.text(d, "updatedate")), detailXml);
+                Xml.text(d, "poster"), null, null, null, null, ticketLinks(d), updatedAt(Xml.text(d, "updatedate")), detailXml);
     }
 
     /** 공연장 조회 실패는 공연 수집을 막지 않는다 (주소·좌표 없이 저장되고 다음 수집에서 다시 시도한다) */

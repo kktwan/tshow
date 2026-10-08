@@ -113,6 +113,14 @@
 - 확인: `curl` 로 `/api/search?q=...` 를 연달아 부르면 17번째쯤부터 429 가 나온다. 제한에 걸렸을 때는 nginx 로그에 `limiting requests` 가 남는다.
 - **AI 추천 제한**: `/recommend`, `/api/recommend` 는 IP당 분당 6번(한꺼번에 3번까지)이다 (`tshow_ai`). 앱에도 사람별·전체 하루 한도가 있다 (`tshow.recommend.daily-limit-per-client`, `daily-limit-total`). 이 설정은 아직 서버에 적용하지 않았다 — 위 적용 방법대로 파일을 두고 `nginx -t` 뒤 reload 한다.
 
+## 데이터베이스 백업
+
+서버에는 백업이 아직 없다. `deploy/backup/pg-backup.sh` 를 `/data/tshow/pg-backup.sh` 로 두고 실행 권한(`chmod +x`)을 준 뒤 크론에 등록한다 (매일 새벽 4시, 7일 보관). 복원 방법은 스크립트 위쪽 주석에 있다. event 와 벡터 색인은 `source_record` 에서 다시 만들 수 있지만, 다시 받으면 KOPIS만 몇 시간이 걸리고 행사 id 가 바뀐다.
+
+## 화면 하단 연락처
+
+`TSHOW_CONTACT_EMAIL` 에 정정·삭제 요청을 받을 이메일을 넣으면 화면 하단과 `/about` 에 보인다. 비워 두면 보이지 않는다. 서버 `.env` 에 넣은 뒤 컨테이너를 다시 만들어야 적용된다.
+
 ## AI 추천 키 (Gemini)
 
 서버 `/data/tshow/.env` 에 `GEMINI_API_KEY` 를 넣고 컨테이너를 다시 만들어야(`docker compose up -d --force-recreate`) 적용된다 (`docker restart` 는 env 를 다시 읽지 않는다). 키가 없으면 앱은 정상 동작하고 AI 추천 버튼만 보이지 않는다. 모델은 `GEMINI_MODEL`(기본 `gemini-3.1-flash-lite-preview`), 생각 시간은 `GEMINI_THINKING_LEVEL`(기본 `MINIMAL`) — `thinking-level: MINIMAL` 과 `thinking-budget: 0` 을 함께 쓰면 400 오류가 난다.

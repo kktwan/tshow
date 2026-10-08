@@ -93,7 +93,8 @@ public class TourApiEventSource extends AbstractEventSource {
                 text(list, "lDongRegnCd"), text(list, "lDongSignguCd"),
                 number(list, "mapy"), number(list, "mapx"),
                 text(intro, "usetimefestival"), text(intro, "agelimit"), null, text(intro, "playtime"), null, sponsor,
-                image, text(list, "cpyrhtDivCd"), homepage(text(common, "homepage")), List.of(),
+                image, text(list, "cpyrhtDivCd"), homepage(text(common, "homepage")), null,
+                Texts.firstOf(text(list, "tel"), text(common, "tel"), text(intro, "sponsor1tel")), List.of(),
                 modifiedAt(text(list, "modifiedtime")), common.toString() + "\n" + intro);
     }
 

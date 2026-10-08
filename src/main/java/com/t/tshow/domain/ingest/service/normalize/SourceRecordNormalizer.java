@@ -7,8 +7,8 @@ import com.t.tshow.global.config.IngestProperties;
 import com.t.tshow.global.util.Html;
 import com.t.tshow.global.util.Json;
 import com.t.tshow.global.util.Texts;
+import com.t.tshow.global.util.Urls;
 import org.springframework.stereotype.Component;
-import org.springframework.web.util.HtmlUtils;
 
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -52,7 +52,8 @@ public class SourceRecordNormalizer {
                 .scheduleText(Texts.blankToNull(raw.scheduleText()))
                 .castText(Texts.blankToNull(raw.castText())).hostText(Texts.blankToNull(raw.hostText()))
                 .imageUrl(image(raw.imageUrl())).imageLicense(Texts.blankToNull(raw.imageLicense()))
-                .infoUrl(Texts.blankToNull(raw.infoUrl()))
+                .infoUrl(Urls.safeHttp(raw.infoUrl())).placeUrl(Urls.safeHttp(raw.placeUrl()))
+                .phone(Texts.blankToNull(raw.phone()))
                 .ticketLinksJson(ticketLinksJson(raw.ticketLinks()))
                 .sourceUpdatedAt(raw.sourceUpdatedAt()).fetchedAt(fetchedAt).raw(raw.raw())
                 .build();
@@ -67,28 +68,21 @@ public class SourceRecordNormalizer {
                 r.startDate(), r.endDate(), unescape(r.venueName()), unescape(r.address()), unescape(r.sidoText()), unescape(r.sigunguText()),
                 r.sidoCode(), r.sigunguCode(), r.lat(), r.lon(), text(r.priceText()), text(r.ageText()),
                 text(r.runtimeText()), text(r.scheduleText()), text(r.castText()), text(r.hostText()),
-                r.imageUrl(), r.imageLicense(), r.infoUrl(), r.ticketLinks(), r.sourceUpdatedAt(), r.raw());
+                r.imageUrl(), r.imageLicense(), r.infoUrl(), r.placeUrl(), text(r.phone()), r.ticketLinks(), r.sourceUpdatedAt(), r.raw());
     }
 
     /** 본문류 글: 엔티티를 풀고 HTML 태그를 걷어 보통 글로 만든다 (소개글이 HTML 로 오는 소스가 있다). 제목·장소·주소에는 쓰지 않는다 */
     private static String text(String value) {
-        return Html.toText(unescape(value));
+        return Html.toPlainText(value);
     }
 
-    /** 더 바뀌지 않을 때까지 (최대 3번) 해제한다 */
+    /** 제목·장소·주소 같은 짧은 글의 엔티티를 푼다 (태그는 걷지 않는다 — <다담> 같은 글자가 제목에 쓰일 수 있다) */
     static String unescape(String text) {
-        if (text == null) return null;
-        String current = text;
-        for (int i = 0; i < 3; i++) {
-            String next = HtmlUtils.htmlUnescape(current);
-            if (next.equals(current)) break;
-            current = next;
-        }
-        return current;
+        return Html.unescape(text);
     }
 
     private String image(String url) {
-        String u = Texts.blankToNull(url);
+        String u = Urls.safeHttp(url);
         if (u != null && upgradeImageHttps && u.startsWith("http://")) {
             return "https://" + u.substring("http://".length());
         }
@@ -97,12 +91,13 @@ public class SourceRecordNormalizer {
 
     private static String ticketLinksJson(List<TicketLink> links) {
         if (links == null || links.isEmpty()) return null;
-        List<Map<String, String>> list = links.stream().map(l -> {
+        // 화면의 예매 버튼이 되므로 http(s) 주소만 남긴다 (javascript: 같은 값과 깨진 엔티티를 걸러낸다)
+        List<Map<String, String>> list = links.stream().filter(l -> Urls.safeHttp(l.url()) != null).map(l -> {
             Map<String, String> m = new LinkedHashMap<>();
             m.put("name", l.name());
-            m.put("url", l.url());
+            m.put("url", Urls.safeHttp(l.url()));
             return m;
         }).toList();
-        return Json.write(list);
+        return list.isEmpty() ? null : Json.write(list);
     }
 }

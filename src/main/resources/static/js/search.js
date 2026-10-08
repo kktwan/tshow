@@ -37,8 +37,9 @@
             }
             nearMe.classList.add('is-loading');
             navigator.geolocation.getCurrentPosition(function (position) {
-                params.set('lat', position.coords.latitude.toFixed(5));
-                params.set('lon', position.coords.longitude.toFixed(5));
+                // 정확한 위치가 주소창·기록에 남지 않게 소수점 셋째 자리(약 100m)까지만 쓴다
+                params.set('lat', position.coords.latitude.toFixed(3));
+                params.set('lon', position.coords.longitude.toFixed(3));
                 params.delete('page');
                 window.location.search = params.toString();
             }, function () {

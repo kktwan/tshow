@@ -38,6 +38,7 @@ class TourApiEventSourceTest {
         assertEquals(1, ctx.events.size(), "이미 끝난 행사는 제외된다");
         RawEvent e = ctx.events.get(0);
         assertEquals(SourceType.TOURAPI, e.source());
+        assertEquals("02-3435-1000", e.phone(), "문의 전화");
         assertEquals("3379778", e.sourceId());
         assertEquals("가락 옥토버페스트", e.title());
         assertEquals("EV010600", e.sourceCategory());

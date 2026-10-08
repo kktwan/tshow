@@ -4,6 +4,7 @@ import com.t.tshow.domain.event.dto.EventSearchCondition;
 import com.t.tshow.domain.event.entity.Event;
 import com.t.tshow.domain.event.repository.EventRepository;
 import com.t.tshow.domain.event.service.EventPresenter;
+import com.t.tshow.domain.event.service.ImageLicense;
 import com.t.tshow.domain.index.port.Embedder;
 import com.t.tshow.domain.index.port.VectorIndex;
 import com.t.tshow.domain.ingest.service.normalize.CategoryResolver;
@@ -139,7 +140,8 @@ public class SearchService {
         return new EventCard(e.getId(), e.getTitle(), categories.kindName(e.getKind()), categories.name(e.getCategory()),
                 e.getImageUrl(), e.getStartDate(), e.getEndDate(), schedule.period(), schedule.status(), schedule.tone(),
                 e.getVenueName(), regions.shortName(e.getSidoCode(), e.getSigunguCode()), e.getPriceType(),
-                meters == null ? null : (int) Math.round(meters), score);
+                meters == null ? null : (int) Math.round(meters), score,
+                ImageLicense.noModify(e.getImageLicense()));
     }
 
     /** 내 주변 검색일 때 내 위치에서 행사까지의 거리(m). 아니거나 행사 좌표를 모르면 null */

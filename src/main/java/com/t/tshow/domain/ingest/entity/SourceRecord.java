@@ -115,6 +115,13 @@ public class SourceRecord {
     @Column(name = "info_url")
     private String infoUrl;
 
+    /** 장소(공연장·전시장) 홈페이지 */
+    @Column(name = "place_url")
+    private String placeUrl;
+
+    /** 문의 전화 */
+    private String phone;
+
     /** 예매처 목록 JSON (jsonb). 문자열 그대로 읽고 쓴다 */
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "ticket_links", columnDefinition = "jsonb")
@@ -155,6 +162,8 @@ public class SourceRecord {
         this.imageUrl = n.imageUrl;
         this.imageLicense = n.imageLicense;
         this.infoUrl = n.infoUrl;
+        this.placeUrl = n.placeUrl;
+        this.phone = n.phone;
         this.ticketLinksJson = n.ticketLinksJson;
         this.sourceUpdatedAt = n.sourceUpdatedAt;
         this.fetchedAt = n.fetchedAt;

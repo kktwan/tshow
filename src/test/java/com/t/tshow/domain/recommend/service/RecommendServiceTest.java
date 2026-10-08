@@ -79,7 +79,7 @@ class RecommendServiceTest {
                     .createdAt(Instant.now()).updatedAt(Instant.now()).build();
             stored.add(e);
             cards.add(new EventCard(e.getId(), title, "공연", "연극", null, TODAY, TODAY.plusDays(5), "10.8 (목) – 10.13 (화)", "진행 중",
-                    "live", "시흥아트센터", "경기 시흥시", "FREE", null, 0.5));
+                    "live", "시흥아트센터", "경기 시흥시", "FREE", null, 0.5, false));
         }
         when(search.search(any())).thenAnswer(inv -> new SearchResponse("", List.of("경기"), true, false, cards, 0, 20, cards.size(), 1));
         when(events.findAllById(any())).thenAnswer(inv -> stored);

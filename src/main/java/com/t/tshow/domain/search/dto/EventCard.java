@@ -11,6 +11,7 @@ import java.util.UUID;
  * @param statusTone     상태 색 구분 (soon, live, ended)
  * @param distanceMeters 내 주변 검색일 때 내 위치에서의 거리 (아니면 null)
  * @param score          의미 검색의 유사도 (조건만으로 찾았으면 null). 화면에는 보이지 않고 점수 하한을 정할 때 본다
+ * @param imageProtected 변경금지 이미지(공공누리 제3·4유형)라서 자르지 않고 원본 그대로 보여야 하는지
  */
 public record EventCard(
         UUID id,
@@ -27,7 +28,8 @@ public record EventCard(
         String regionName,
         String priceType,
         Integer distanceMeters,
-        Double score) {
+        Double score,
+        boolean imageProtected) {
 
     /** 거리를 1.2km / 350m 처럼. 거리를 모르면 null */
     public String distanceLabel() {

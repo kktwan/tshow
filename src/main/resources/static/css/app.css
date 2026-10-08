@@ -348,6 +348,9 @@ button { cursor: pointer; }
 .prop dd { min-width: 0; }
 .link { display: inline-flex; align-items: center; gap: 3px; margin-top: 4px; color: var(--accent-text); font-size: 13.5px; font-weight: 600; }
 .link:hover { text-decoration: underline; text-underline-offset: 3px; }
+.link-second { margin-left: 14px; }
+.tel { color: var(--text); font-weight: 600; }
+.tel:hover { color: var(--accent-text); text-decoration: underline; text-underline-offset: 3px; }
 
 .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
 
@@ -358,8 +361,31 @@ button { cursor: pointer; }
 
 /* ───────── 바닥글 ───────── */
 .footer { border-top: 1px solid var(--line); padding: 32px 0 48px; color: var(--faint); font-size: 12.5px; line-height: 1.75; }
-.footer-brand { font-weight: 800; font-size: 14px; color: var(--muted); margin-bottom: 6px; letter-spacing: -.02em; }
-.footer-inner { max-width: 760px; }
+.footer-brand { font-weight: 800; font-size: 14px; color: var(--muted); letter-spacing: -.02em; }
+.footer-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px 24px; flex-wrap: wrap; margin-bottom: 8px; }
+.footer-links { display: flex; flex-wrap: wrap; gap: 4px 18px; }
+.footer-links strong { font-weight: 600; color: var(--muted); }
+.footer-links a { color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
+.footer-links a:hover { color: var(--text); }
+.footer-copy { margin-top: 10px; }
+.footer-inner { max-width: 1080px; }
+.footer-inner > p { max-width: 760px; }
+
+/* 변경금지 이미지(공공누리 제3·4유형)는 자르지 않고 원본 비율 그대로 보여 준다 */
+.is-protected img { object-fit: contain !important; background: var(--soft); }
+.card:hover .is-protected img { transform: none; }
+
+/* ───────── 서비스 안내 ───────── */
+.about { max-width: 780px; }
+.about-title { margin-top: 8px; font-size: clamp(28px, 4vw, 38px); font-weight: 800; letter-spacing: -.035em; }
+.about-lead { margin-top: 10px; color: var(--muted); font-size: 17px; }
+.about section { margin-top: 36px; }
+.about h2 { font-size: 20px; font-weight: 800; letter-spacing: -.03em; margin-bottom: 10px; }
+.about p { line-height: 1.8; }
+.about-list { margin-top: 10px; display: grid; gap: 8px; }
+.about-list li { padding: 12px 16px; border-radius: 14px; background: var(--soft); line-height: 1.7; }
+.about-note { margin-top: 12px; color: var(--muted); font-size: 14px; }
+.about a:not(.back) { color: var(--accent-text); text-decoration: underline; text-underline-offset: 3px; }
 
 /* ───────── 움직임 ───────── */
 @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }

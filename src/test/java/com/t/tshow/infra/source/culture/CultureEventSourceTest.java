@@ -30,6 +30,8 @@ class CultureEventSourceTest {
         assertEquals(1, ctx.events.size());
         RawEvent e = ctx.events.get(0);
         assertEquals(SourceType.CULTURE, e.source());
+        assertEquals("국립중앙박물관 02-2077-9000", e.phone(), "문의 전화");
+        assertEquals("http://www.museum.go.kr", e.placeUrl(), "장소 홈페이지");
         assertEquals("371407", e.sourceId());
         assertEquals("전시", e.sourceCategory());
         assertEquals(LocalDate.of(2025, 11, 22), e.startDate());

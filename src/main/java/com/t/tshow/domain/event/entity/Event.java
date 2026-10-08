@@ -107,6 +107,13 @@ public class Event implements Persistable<UUID> {
     @Column(name = "info_url")
     private String infoUrl;
 
+    /** 장소(공연장·전시장) 홈페이지 */
+    @Column(name = "place_url")
+    private String placeUrl;
+
+    /** 문의 전화 */
+    private String phone;
+
     /** 예매처 목록 JSON (jsonb). 문자열 그대로 읽고 쓴다 */
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "ticket_links", columnDefinition = "jsonb")
@@ -191,6 +198,8 @@ public class Event implements Persistable<UUID> {
         this.imageUrl = m.imageUrl;
         this.imageLicense = m.imageLicense;
         this.infoUrl = m.infoUrl;
+        this.placeUrl = m.placeUrl;
+        this.phone = m.phone;
         this.ticketLinksJson = m.ticketLinksJson;
         this.sourceCount = m.sourceCount;
         this.hasDescription = m.hasDescription;

@@ -121,7 +121,7 @@
             <ul class="grid" th:unless="${result.items.isEmpty()}">
                 <li th:each="e, st : ${result.items}" th:style="'--i:' + ${st.index}">
                     <a class="card" th:href="@{/events/{id}(id=${e.id})}">
-                        <div class="card-cover">
+                        <div class="card-cover" th:classappend="${e.imageProtected} ? 'is-protected'">
                             <img th:if="${e.imageUrl != null}" th:src="${e.imageUrl}" th:alt="${e.title}" loading="lazy"
                                  referrerpolicy="no-referrer" onerror="this.remove()">
                             <span class="card-cover-fallback" aria-hidden="true"

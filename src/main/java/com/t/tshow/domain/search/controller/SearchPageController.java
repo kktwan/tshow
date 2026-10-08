@@ -10,6 +10,7 @@ import com.t.tshow.domain.search.service.DateRule;
 import com.t.tshow.domain.search.service.SearchDictionary;
 import com.t.tshow.domain.search.service.SearchService;
 import com.t.tshow.global.config.SearchProperties;
+import com.t.tshow.global.web.PageMeta;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -51,6 +52,9 @@ public class SearchPageController {
         model.addAttribute("pageTitle", links.any()
                 ? (result.query().isBlank() ? "검색 결과" : result.query()) + " · tshow" : "tshow · 공연 전시 축제 찾기");
         model.addAttribute("hidden", links.hiddenFields());
+        // 조건이 붙은 검색 결과는 조합이 끝없이 늘어나 검색엔진 색인에서 뺀다. 첫 화면만 대표 주소로 둔다
+        model.addAttribute("meta", new PageMeta("날짜·지역·분위기로 공연·전시·축제를 찾아 보세요. '이번 주말 서울 무료 전시'처럼 적으면 조건은 알아서 찾아요.",
+                null, links.any() ? null : "/", links.any()));
         model.addAttribute("examples", properties.examples().stream()
                 .map(example -> new ChipView(example, new SearchLinks(new SearchRequest(null, null, null, null, null, null, null, null,
                         null, null, null, null, null)).with("q", example), false)).toList());

@@ -42,7 +42,7 @@ class ApiControllerTest {
     @Test
     void 검색은_요청_조건을_서비스에_넘기고_성공_응답으로_감싼다() throws Exception {
         EventCard card = new EventCard(UUID.randomUUID(), "어린왕자", "공연", "연극", null, LocalDate.of(2026, 10, 28),
-                LocalDate.of(2026, 10, 28), "10.28 (수)", "D-20", "soon", "시흥아트센터", "경기 시흥시", "FREE", null, 0.5);
+                LocalDate.of(2026, 10, 28), "10.28 (수)", "D-20", "soon", "시흥아트센터", "경기 시흥시", "FREE", null, 0.5, false);
         when(search.search(argThat((SearchRequest r) -> r != null && "서울 무료".equals(r.q()) && Boolean.TRUE.equals(r.free())
                 && LocalDate.of(2026, 10, 10).equals(r.date()))))
                 .thenReturn(new SearchResponse("", List.of("서울", "무료"), false, false, List.of(card), 0, 12, 1, 1));
@@ -66,7 +66,8 @@ class ApiControllerTest {
     void 행사_상세는_성공_응답으로_감싼다() throws Exception {
         UUID id = UUID.randomUUID();
         EventDetail detail = new EventDetail(id, "PERFORMANCE", "공연", "theater", "연극", "어린왕자", null, null, null, "일정 미정",
-                null, "ended", null, null, "", null, null, "FREE", null, null, null, null, null, null, null, null, List.of(), List.of());
+                null, "ended", null, null, "", null, null, "FREE", null, null, null, null, null, null, null, null, false,
+                null, null, null, List.of(), List.of());
         when(events.get(id)).thenReturn(detail);
 
         mvc.perform(get("/api/events/" + id))
