@@ -45,6 +45,12 @@ class NormalizationTest {
         assertEquals("12", regions.resolve("전남광주통합특별시", null, null, null, null, report).sidoCode());
         assertEquals("36110", regions.resolve("세종특별자치시", null, null, null, null, report).sidoCode());
         assertEquals("52", regions.resolve("전북", null, null, null, null, report).sidoCode());
+        // 한 글자 접미사(구)를 떼서 "대"가 되던 오류 방지, 줄임말은 별칭으로
+        assertEquals("27", regions.resolve("대구", null, null, null, null, report).sidoCode());
+        assertEquals("48", regions.resolve("경남", null, null, null, null, report).sidoCode());
+        assertEquals("47", regions.resolve("경북", null, null, null, null, report).sidoCode());
+        assertEquals("44", regions.resolve("충남", null, null, null, null, report).sidoCode());
+        assertEquals("43", regions.resolve("충북", null, null, null, null, report).sidoCode());
         assertTrue(report.isEmpty(), report.unmapped().toString());
     }
 
@@ -66,6 +72,25 @@ class NormalizationTest {
         RegionResolver.Region fromAddressOnly = regions.resolve(null, null, "서울특별시 용산구 서빙고로 137", null, null, report);
         assertEquals("11", fromAddressOnly.sidoCode());
         assertEquals("170", fromAddressOnly.sigunguCode());
+    }
+
+    @Test
+    void 바뀐_시군구_이름은_별칭으로_현재_이름을_찾는다() {
+        NormalizationReport report = new NormalizationReport();
+        RegionResolver.Region r = regions.resolve("인천", "남구", null, null, null, report);
+        assertEquals("28", r.sidoCode());
+        assertEquals("177", r.sigunguCode(), "인천 남구는 미추홀구(177)");
+        assertTrue(report.isEmpty(), report.unmapped().toString());
+        // 세종시처럼 시도 이름이 시군구 칸에 한 번 더 오는 값은 리포트에 남기지 않는다
+        regions.resolve("세종특별자치시", "세종시", null, null, null, report);
+        assertTrue(report.unmapped().getOrDefault("sigungu", java.util.Map.of()).isEmpty(), report.unmapped().toString());
+    }
+
+    @Test
+    void 읍_면_동은_시군구_후보가_아니라서_리포트에_남기지_않는다() {
+        NormalizationReport report = new NormalizationReport();
+        regions.resolve("세종특별자치시", null, "세종특별자치시 조치원읍 문예회관길 22", null, null, report);
+        assertTrue(report.unmapped().getOrDefault("sigungu", java.util.Map.of()).isEmpty(), report.unmapped().toString());
     }
 
     @Test

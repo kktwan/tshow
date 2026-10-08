@@ -1,0 +1,38 @@
+# Jenkins가 Blue-Green 무중단 배포 시 제어하는 앱 컨테이너 (tshow-blue / tshow-green)
+# 위치: /data/tshow/docker-compose.app.yml
+# 같은 폴더의 .env (deploy/.env.example 참고)를 읽는다. .env 는 서버에만 두고 커밋하지 않는다.
+x-app-common: &app-common
+  image: tshow:${IMAGE_TAG:-latest}
+  restart: unless-stopped
+  env_file:
+    - .env
+  environment:
+    # 공용 Postgres(infra-postgres)의 tshow 데이터베이스. 사용자·비밀번호는 .env 의 DB_USERNAME / DB_PASSWORD
+    DB_URL: jdbc:postgresql://infra-postgres:5432/tshow
+    # 벡터 색인을 붙일 때 사용 (공용 Qdrant, 키는 .env 의 QDRANT_API_KEY)
+    QDRANT_HOST: infra-qdrant
+    QDRANT_GRPC_PORT: "6334"
+    # 수집기가 주로 쓰는 메모리 (벡터 색인·AI 를 붙이면 늘린다)
+    JAVA_TOOL_OPTIONS: "-Xms256m -Xmx768m -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
+    TZ: Asia/Seoul
+  expose:
+    - "8080"
+  mem_limit: 1g
+  networks:
+    - infra-net
+  logging:
+    driver: json-file
+    options: { max-size: "10m", max-file: "3" }
+
+services:
+  tshow-blue:
+    <<: *app-common
+    container_name: tshow-blue
+
+  tshow-green:
+    <<: *app-common
+    container_name: tshow-green
+
+networks:
+  infra-net:
+    external: true

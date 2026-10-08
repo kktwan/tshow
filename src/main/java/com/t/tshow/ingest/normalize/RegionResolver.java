@@ -31,14 +31,20 @@ public class RegionResolver {
 
     private static final String CSV = "taxonomy/regions.csv";
     private static final String ALIASES = "taxonomy/region-aliases.yml";
-    /** 이름 끝에서 떼어 내는 행정구역 접미사 (긴 것부터) */
-    private static final List<String> SUFFIXES = List.of("특별자치도", "특별자치시", "통합특별시", "특별시", "광역시", "도", "시", "군", "구");
+    /** 시도 이름 끝에서 떼어 내는 접미사. 서울시→서울 처럼 시·도는 떼지만 구·군은 떼지 않는다 (대구가 "대"가 되면 안 된다) */
+    private static final List<String> SIDO_SUFFIXES = List.of("특별자치도", "특별자치시", "통합특별시", "특별시", "광역시", "도", "시");
+    /** 시군구 이름 끝에서 떼어 내는 접미사 */
+    private static final List<String> SIGUNGU_SUFFIXES = List.of("시", "군", "구");
+    /** 읍·면·동·도로명으로 끝나는 말은 시군구 후보가 아니다 (리포트에 남기지 않는다) */
+    private static final List<String> NOT_SIGUNGU_SUFFIXES = List.of("읍", "면", "동", "리", "로", "길");
 
     private final Map<String, String> sidoNameByCode = new HashMap<>();
     /** 시도 코드 → (시군구 이름 → 시군구 코드) */
     private final Map<String, Map<String, String>> sigunguByNameBySido = new HashMap<>();
     private final Map<String, String> sidoByAlias = new HashMap<>();
     private final Set<String> nonDomestic = new HashSet<>();
+    /** 시도 코드 → (소스가 주는 옛 시군구 이름 → 현재 이름) */
+    private final Map<String, Map<String, String>> sigunguRenames = new HashMap<>();
 
     public RegionResolver() {
         loadCsv();
@@ -65,6 +71,14 @@ public class RegionResolver {
             Map<String, Object> root = new Yaml().load(in);
             ((Map<Object, Object>) root.get("sido")).forEach((k, v) -> sidoByAlias.put(String.valueOf(k), String.valueOf(v)));
             ((List<Object>) root.get("non-domestic")).forEach(v -> nonDomestic.add(String.valueOf(v)));
+            Object renames = root.get("sigungu");
+            if (renames instanceof Map<?, ?> bySido) {
+                bySido.forEach((sido, names) -> {
+                    Map<String, String> map = new HashMap<>();
+                    ((Map<Object, Object>) names).forEach((from, to) -> map.put(String.valueOf(from), String.valueOf(to)));
+                    sigunguRenames.put(String.valueOf(sido), map);
+                });
+            }
         } catch (IOException e) {
             throw new IllegalStateException(ALIASES + " 를 읽지 못했어요", e);
         }
@@ -102,14 +116,15 @@ public class RegionResolver {
         if (sigunguCode != null && sigungus.containsValue(sigunguCode)) {
             sigungu = sigunguCode;
         }
-        if (sigungu == null) sigungu = findSigungu(sigungus, sigunguText);
+        if (sigungu == null) sigungu = findSigungu(sido, sigungus, sigunguText);
         for (int i = 1; sigungu == null && i < Math.min(tokens.size(), 4); i++) {
-            sigungu = findSigungu(sigungus, tokens.get(i));
+            sigungu = findSigungu(sido, sigungus, tokens.get(i));
         }
         // 시군구를 못 찾았는데 이름 후보가 있었다면(신설 행정구역 등) 표를 고칠 수 있게 남긴다. 시군구가 없는 시도(세종)는 제외
         if (sigungu == null && !sigungus.isEmpty()) {
             String candidate = firstNonBlank(sigunguText, tokens.size() > 1 ? tokens.get(1) : null);
-            if (candidate != null) {
+            // 읍·면·동·도로명이거나 시도 이름이 한 번 더 온 값(세종시)은 시군구 후보가 아니다
+            if (candidate != null && NOT_SIGUNGU_SUFFIXES.stream().noneMatch(candidate::endsWith) && !sido.equals(findSido(candidate))) {
                 report.unmapped("sigungu", sidoNameByCode.get(sido) + " " + candidate);
             }
         }
@@ -123,28 +138,29 @@ public class RegionResolver {
             if (e.getValue().equals(name)) return e.getKey();
         }
         if (sidoByAlias.containsKey(name)) return sidoByAlias.get(name);
-        String stem = stem(name);
+        String stem = stem(name, SIDO_SUFFIXES);
         for (Map.Entry<String, String> e : sidoNameByCode.entrySet()) {
-            if (stem(e.getValue()).equals(stem)) return e.getKey();
+            if (stem(e.getValue(), SIDO_SUFFIXES).equals(stem)) return e.getKey();
         }
         return null;
     }
 
-    private String findSigungu(Map<String, String> sigungus, String text) {
+    private String findSigungu(String sido, Map<String, String> sigungus, String text) {
         String name = blankToNull(text);
         if (name == null) return null;
+        name = sigunguRenames.getOrDefault(sido, Map.of()).getOrDefault(name, name);
         if (sigungus.containsKey(name)) return sigungus.get(name);
-        String stem = stem(name);
+        String stem = stem(name, SIGUNGU_SUFFIXES);
         if (stem.length() < 2) return null;
         List<String> matches = new ArrayList<>();
         for (Map.Entry<String, String> e : sigungus.entrySet()) {
-            if (stem(e.getKey()).equals(stem)) matches.add(e.getValue());
+            if (stem(e.getKey(), SIGUNGU_SUFFIXES).equals(stem)) matches.add(e.getValue());
         }
         return matches.size() == 1 ? matches.get(0) : null;
     }
 
-    static String stem(String name) {
-        for (String suffix : SUFFIXES) {
+    static String stem(String name, List<String> suffixes) {
+        for (String suffix : suffixes) {
             if (name.length() > suffix.length() && name.endsWith(suffix)) {
                 return name.substring(0, name.length() - suffix.length());
             }
